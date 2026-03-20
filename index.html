@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVG Navigator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #16161a;
+    --border: #2a2a30;
+    --accent: #e8c547;
+    --accent2: #4a9eff;
+    --text: #e8e8f0;
+    --muted: #7a7a90;
+    --danger: #ff6b6b;
+    --level0-color: #e8c547;
+    --level1-color: #4a9eff;
+    --level2-color: #7eb88a;
+    --workflow-color: #c084fc;
+    --checks-color: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 2rem 3rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  header span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .breadcrumb {
+    padding: 1rem 3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    min-height: 3rem;
+  }
+  .breadcrumb .crumb {
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+  }
+  .breadcrumb .crumb:hover { color: var(--text); background: var(--surface); }
+  .breadcrumb .sep { opacity: 0.3; }
+  .breadcrumb .current { color: var(--accent); cursor: default; }
+  .breadcrumb .current:hover { background: transparent; }
+
+  .level-indicator {
+    padding: 0.5rem 3rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .dot.active { background: var(--accent); }
+
+  main {
+    padding: 2rem 3rem;
+    max-width: 1200px;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.3s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* LEVEL 0 — overview */
+  .overview-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    font-weight: 400;
+  }
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .pillar {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pillar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--level0-color);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .pillar:hover { 
+    border-color: var(--level0-color); 
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .pillar:hover::before { opacity: 1; }
+  .pillar .icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .pillar h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  .pillar p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+  .pillar .zoom-hint {
+    margin-top: 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .pillar:hover .zoom-hint { opacity: 1; }
+
+  /* LEVEL 1 — principles */
+  .level1-header {
+    margin-bottom: 2rem;
+  }
+  .level1-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  .level1-header p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; max-width: 60ch; }
+  
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .principle {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 1.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .principle::before {
+    content: '';
+    display: block;
+    width: 24px; height: 2px;
+    background: var(--level1-color);
+    margin-bottom: 0.75rem;
+  }
+  .principle:hover { border-color: var(--level1-color); transform: translateY(-2px); }
+  .principle h4 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.4rem; }
+  .principle p { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  .principle .zoom-hint {
+    margin-top: 0.75rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--level1-color);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .principle:hover .zoom-hint { opacity: 1; }
+
+  /* Workflow variant for principle cards */
+  .principle.workflow-principle::before { background: var(--workflow-color); }
+  .principle.workflow-principle:hover { border-color: var(--workflow-color); }
+  .principle.workflow-principle .zoom-hint { color: var(--workflow-color); }
+
+  /* LEVEL 2 — detail */
+  .detail-panel {
+    max-width: 720px;
+  }
+  .detail-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.75rem;
+    background: rgba(126, 184, 138, 0.1);
+    border: 1px solid var(--level2-color);
+    color: var(--level2-color);
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+  }
+  .detail-panel h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  .detail-panel .intro {
+    font-size: 1rem;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 2rem;
+    border-left: 2px solid var(--level2-color);
+    padding-left: 1.25rem;
+  }
+  .detail-sections { display: flex; flex-direction: column; gap: 1.5rem; }
+  .detail-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+  .detail-section h5 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  .detail-section p { font-size: 0.875rem; line-height: 1.7; color: var(--text); }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    background: rgba(74, 158, 255, 0.1);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    color: var(--accent2);
+    border-radius: 2px;
+  }
+  .tag.warn {
+    background: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--danger);
+  }
+
+  /* Practice examples */
+  .praktijk-block {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .praktijk-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    padding: 0.6rem 1rem;
+    background: rgba(232, 197, 71, 0.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .praktijk-header::before {
+    content: '▸';
+    font-size: 0.65rem;
+  }
+  .praktijk-examples { display: flex; flex-direction: column; }
+  .praktijk-item {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    align-items: start;
+    transition: background 0.15s;
+  }
+  .praktijk-item:last-child { border-bottom: none; }
+  .praktijk-item:hover { background: rgba(255,255,255,0.02); }
+  .praktijk-icon {
+    font-size: 0.9rem;
+    margin-top: 0.1rem;
+    width: 1.4rem;
+    text-align: center;
+  }
+  .praktijk-text { font-size: 0.82rem; line-height: 1.6; color: var(--text); }
+  .praktijk-text strong {
+    font-weight: 500;
+    color: var(--accent2);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.78rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.5rem 0;
+    margin-bottom: 2rem;
+    border: none;
+    background: none;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--text); }
+
+  .zoom-nav {
+    display: flex;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .copy-link-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+  }
+  .copy-link-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .copy-link-btn.copied { border-color: var(--level2-color); color: var(--level2-color); }
+  .zoom-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Workflow pillar variant */
+  .pillar.workflow-pillar::before { background: var(--workflow-color); }
+  .pillar.workflow-pillar:hover { border-color: var(--workflow-color); }
+  .pillar.workflow-pillar .zoom-hint { color: var(--workflow-color); }
+
+  /* Workflow step indicator in detail panel */
+  .detail-section.workflow-step {
+    position: relative;
+    border-left: 3px solid var(--workflow-color);
+  }
+  .detail-section.workflow-step h5 {
+    color: var(--workflow-color);
+  }
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: rgba(192, 132, 252, 0.15);
+    border: 1px solid var(--workflow-color);
+    color: var(--workflow-color);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 500;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .detail-section.workflow-step h5 {
+    display: flex;
+    align-items: center;
+  }
+  /* Workflow badge variant */
+  .detail-badge.workflow-badge {
+    background: rgba(192, 132, 252, 0.1);
+    border-color: var(--workflow-color);
+    color: var(--workflow-color);
+  }
+
+  /* Checks pillar/principle/badge variants */
+  .pillar.checks-pillar::before { background: var(--checks-color); }
+  .pillar.checks-pillar:hover { border-color: var(--checks-color); }
+  .pillar.checks-pillar .zoom-hint { color: var(--checks-color); }
+
+  .principle.checks-principle::before { background: var(--checks-color); }
+  .principle.checks-principle:hover { border-color: var(--checks-color); }
+  .principle.checks-principle .zoom-hint { color: var(--checks-color); }
+
+  .detail-badge.checks-badge {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: var(--checks-color);
+    color: var(--checks-color);
+  }
+
+  /* Checks question list */
+  .checks-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .checks-question {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .checks-question:last-child { border-bottom: none; }
+  .checks-question:hover { background: rgba(249,115,22,0.04); }
+  .checks-q-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--checks-color);
+    background: rgba(249,115,22,0.1);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 2px;
+    padding: 0.15rem 0.4rem;
+    white-space: nowrap;
+    margin-top: 0.1rem;
+  }
+  .checks-q-text {
+    font-size: 0.85rem;
+    line-height: 1.65;
+    color: var(--text);
+  }
+  .checks-q-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+    line-height: 1.5;
+  }
+  .checks-verdict {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: rgba(249,115,22,0.07);
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 4px;
+    border-left: 3px solid var(--checks-color);
+  }
+  .checks-verdict-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--checks-color);
+    margin-bottom: 0.4rem;
+  }
+  .checks-verdict p {
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  /* SEARCH */
+  .search-bar {
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .search-bar input {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.7rem 1rem 0.7rem 2.5rem;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-bar input::placeholder { color: var(--muted); }
+  .search-bar input:focus { border-color: var(--accent); }
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+  .search-results {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    max-width: 520px;
+  }
+  .search-results.visible { display: flex; }
+  .search-result-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .search-result-item:hover { border-color: var(--accent); transform: translateX(3px); }
+  .search-result-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .search-result-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .search-result-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent2);
+    opacity: 0.8;
+  }
+  .search-result-snippet {
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 0.2rem;
+  }
+  .search-result-snippet mark {
+    background: rgba(232, 197, 71, 0.25);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  .search-no-results {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 0.5rem 0;
+    display: none;
+  }
+  .search-no-results.visible { display: block; }
+
+  /* OVER DEZE TOOL MODAL */
+  .about-btn {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.9rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .about-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-width: 640px;
+    width: 100%;
+    padding: 2.5rem;
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 6px 6px 0 0;
+  }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+  }
+  .modal-body {
+    font-size: 0.875rem;
+    line-height: 1.8;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .modal-body p { color: #c8c8d8; }
+  .modal-close {
+    margin-top: 2rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 0.5rem 1.2rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--muted); }
+
+  mark {
+    background: rgba(232, 197, 71, 0.25);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* =============================================
+     RESPONSIVE / MOBILE
+     ============================================= */
+
+  /* Tablet: 768px en kleiner */
+  @media (max-width: 768px) {
+    header {
+      padding: 1.25rem 1.25rem 1rem;
+      gap: 0.75rem;
+      align-items: flex-start;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1.5rem; }
+    header span { font-size: 0.68rem; flex-basis: 100%; }
+    .about-btn { margin-left: auto; margin-top: 0; align-self: flex-start; }
+
+    .breadcrumb {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      min-height: auto;
+    }
+
+    .level-indicator { padding: 0.5rem 1.25rem; }
+
+    main { padding: 1.25rem 1.25rem; }
+
+    .pillars {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    .principles {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    /* Zoom-hint altijd zichtbaar op touch */
+    .pillar .zoom-hint,
+    .principle .zoom-hint { opacity: 1; }
+
+    /* Pillar cards compacter op mobiel */
+    .pillar { padding: 1.1rem 1.1rem 1rem; }
+    .pillar .icon { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .pillar h3 { font-size: 1rem; }
+
+    /* Detail panel */
+    .detail-panel h2 { font-size: 1.5rem; }
+    .detail-panel .intro { font-size: 0.9rem; }
+    .detail-section { padding: 1rem; }
+
+    /* Zoom nav onderaan detail */
+    .zoom-nav {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+    .copy-link-btn {
+      margin-left: 0;
+      justify-content: center;
+      padding: 0.65rem 1rem;
+    }
+    .zoom-btn { text-align: center; }
+
+    /* Zoekbalk full-width */
+    .search-bar input { max-width: 100%; font-size: 1rem; }
+    .search-results { max-width: 100%; }
+
+    /* Modal */
+    .modal-overlay { padding: 0.75rem; align-items: flex-end; }
+    .modal-box {
+      padding: 1.5rem 1.25rem;
+      border-radius: 6px 6px 4px 4px;
+      max-height: 85vh;
+    }
+
+    /* Level 1 header */
+    .level1-header h2 { font-size: 1.4rem; }
+    .level1-header p { max-width: 100%; }
+
+    /* Praktijk items */
+    .praktijk-item { padding: 0.75rem 0.85rem; }
+
+    /* Checks questions */
+    .checks-question { padding: 0.75rem 0.85rem; gap: 0.5rem; }
+  }
+
+  /* Smartphone: 480px en kleiner */
+  @media (max-width: 480px) {
+    header { padding: 1rem; }
+    header h1 { font-size: 1.3rem; }
+    .breadcrumb { padding: 0.6rem 1rem; font-size: 0.7rem; }
+    .level-indicator { padding: 0.4rem 1rem; }
+    main { padding: 1rem; }
+
+    .pillar { padding: 1rem; }
+    .pillar h3 { font-size: 0.95rem; }
+    .pillar p { font-size: 0.8rem; }
+
+    .detail-panel h2 { font-size: 1.25rem; }
+    .detail-badge { font-size: 0.65rem; }
+    .detail-section { padding: 0.85rem; }
+    .detail-section p { font-size: 0.82rem; }
+
+    .search-bar input {
+      font-size: 0.95rem;
+      padding: 0.65rem 0.85rem 0.65rem 2.2rem;
+    }
+
+    /* Terug-knop groter tap-target */
+    .back-btn { padding: 0.75rem 0; font-size: 0.8rem; }
+
+    .overview-title { font-size: 0.95rem; margin-bottom: 1.25rem; }
+
+    .tag-list { gap: 0.4rem; }
+    .tag { font-size: 0.65rem; }
+
+    /* Checks */
+    .checks-q-text { font-size: 0.82rem; }
+    .checks-verdict { padding: 0.85rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AVG Navigator</h1>
+  <span>Algemene Verordening Gegevensbescherming &nbsp;·&nbsp; v1.6 &nbsp;·&nbsp; maart 2026 &nbsp;·&nbsp; TL4E</span>
+  <button class="about-btn" onclick="document.getElementById('about-modal').classList.add('open')">Over deze tool</button>
+</header>
+
+<!-- OVER DEZE TOOL MODAL -->
+<div class="modal-overlay" id="about-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-title">Over deze tool</div>
+    <div class="modal-body">
+      <p>De AVG Navigator is een interactieve gids die helpt om de Algemene Verordening Gegevensbescherming (AVG) begrijpelijk en praktisch toepasbaar te maken. In plaats van lange juridische teksten biedt deze tool een overzichtelijke structuur waarin gebruikers stap voor stap door de belangrijkste onderdelen van de privacywetgeving kunnen navigeren.</p>
+      <p>De navigator werkt met drie niveaus: een overzicht van hoofdthema's, een verdieping in belangrijke principes en artikelen, en praktische uitleg met voorbeelden uit de dagelijkse praktijk. Daarnaast bevat de tool workflows voor veelvoorkomende situaties, zoals datalekken of verzoeken van betrokkenen.</p>
+      <p>De AVG Navigator is bedoeld voor iedereen die met persoonsgegevens werkt, zoals privacy officers, IT-professionals, HR-afdelingen, managers en compliance-specialisten. Ook is de tool geschikt voor trainingen en introducties in privacywetgeving.</p>
+      <p>Het doel is eenvoudig: complexe regelgeving toegankelijk maken, zodat organisaties beter begrijpen wat de AVG vraagt en sneller de juiste beslissingen kunnen nemen bij het verwerken van persoonsgegevens.</p>
+      <p style="margin-top:1.25rem; font-family:'IBM Plex Mono',monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent);">Changelog</p>
+      <p style="font-size:0.8rem; line-height:1.7;"><strong style="color:var(--text);">v1.6</strong> — Geschikt gemaakt voor mobile devices.</p>
+      <p style="font-size:0.8rem; line-height:1.7;"><strong style="color:var(--text);">v1.5</strong> — Praktijkvoorbeeld "Ziekenhuis verwerkt patiëntgegevens" uitgebreid met meerdere grondslagen en bewaarplicht.</p>
+      <p style="font-size:0.8rem; line-height:1.7;"><strong style="color:var(--text);">v1.4</strong> — Initiële versie.</p>
+    </div>
+    <button class="modal-close" onclick="document.getElementById('about-modal').classList.remove('open')">Sluiten</button>
+  </div>
+</div>
+
+<div class="breadcrumb" id="breadcrumb">
+  <span class="crumb current" onclick="goLevel(0)">Overzicht</span>
+</div>
+
+<div class="level-indicator">
+  <div class="dot active" id="d0"></div>
+  <div class="dot" id="d1"></div>
+  <div class="dot" id="d2"></div>
+  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-left: 0.5rem;" id="level-label">Niveau 1 van 3</span>
+</div>
+
+<main>
+
+<!-- LEVEL 0: Overzicht -->
+<div class="view active" id="view0">
+  <div class="search-bar">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="search-input" placeholder="Zoek op artikel, onderwerp of trefwoord…" oninput="handleSearch(this.value)" autocomplete="off" />
+    <div class="search-results" id="search-results"></div>
+    <div class="search-no-results" id="search-no-results">Geen resultaten gevonden.</div>
+  </div>
+  <p class="overview-title">Klik op een thema om verder in te zoomen →</p>
+  <div class="pillars">
+    <div class="pillar" onclick="goLevel(1, 'rechten')">
+      <div class="icon">👤</div>
+      <h3>Rechten van betrokkenen</h3>
+      <p>Welke rechten hebben personen waarvan gegevens worden verwerkt?</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'beginselen')">
+      <div class="icon">⚖️</div>
+      <h3>Beginselen van verwerking</h3>
+      <p>De grondbeginselen waarop alle gegevensverwerking moet zijn gebaseerd.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'grondslagen')">
+      <div class="icon">🔑</div>
+      <h3>Rechtmatige grondslagen</h3>
+      <p>Op welke grondslag mag u persoonsgegevens verwerken?</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'beveiliging')">
+      <div class="icon">🔒</div>
+      <h3>Beveiliging & datalekken</h3>
+      <p>Verplichtingen rondom technische beveiliging en meldplicht bij inbreuken.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'organisatie')">
+      <div class="icon">🏢</div>
+      <h3>Organisatorische verplichtingen</h3>
+      <p>Documentatie, FG, DPIA en verantwoording richting toezichthouders.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'doorgifte')">
+      <div class="icon">🌍</div>
+      <h3>Internationale doorgifte</h3>
+      <p>Regels voor doorgeven van persoonsgegevens buiten de EER.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar" onclick="goLevel(1, 'classificatie')">
+      <div class="icon">🗂️</div>
+      <h3>Persoonsgegevens & classificatie</h3>
+      <p>Welke soorten persoonsgegevens bestaan er en hoe classificeert u ze naar gevoeligheid?</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar workflow-pillar" onclick="goLevel(1, 'workflows')">
+      <div class="icon">🔄</div>
+      <h3>Workflows</h3>
+      <p>Stapsgewijze procesgidsen voor datalekken, betrokkenenverzoeken en nieuwe verwerkingen.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+    <div class="pillar checks-pillar" onclick="goLevel(1, 'checks')">
+      <div class="icon">✅</div>
+      <h3>Praktische checks</h3>
+      <p>Gerichte vragenlijsten om snel en zorgvuldig te beslissen bij privacy-vraagstukken in de praktijk.</p>
+      <div class="zoom-hint">→ inzoomen</div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVEL 1: Detailthema's -->
+<div class="view" id="view1">
+  <button class="back-btn" onclick="goLevel(0)">← terug naar overzicht</button>
+  <div class="level1-header" id="l1-header"></div>
+  <div class="principles" id="l1-principles"></div>
+</div>
+
+<!-- LEVEL 2: Diepste detail -->
+<div class="view" id="view2">
+  <button class="back-btn" id="l2-back">← terug</button>
+  <div class="detail-panel" id="l2-content"></div>
+</div>
+
+</main>
+
+<script>
+const DATA = {
+  rechten: {
+    title: "Rechten van betrokkenen",
+    intro: "Iedere persoon van wie gegevens worden verwerkt heeft wettelijke rechten onder de AVG. Organisaties moeten deze rechten faciliteren en op verzoeken binnen één maand reageren.",
+    items: [
+      {
+        id: "inzage", title: "Recht op inzage", short: "Opvragen welke gegevens worden verwerkt.",
+        badge: "Artikel 15", intro: "Een betrokkene heeft het recht om te weten of en welke persoonsgegevens worden verwerkt, met welk doel, en aan wie ze worden verstrekt.",
+        sections: [
+          { title: "Wat moet u verstrekken?", body: "Een kopie van alle verwerkte gegevens, het doel van verwerking, categorieën ontvangers, bewaartermijnen, en de herkomst van de gegevens als die niet direct van de betrokkene zijn verkregen." },
+          { title: "Termijn & uitzondering", body: "Reactie binnen 1 maand, met mogelijkheid tot 2 maanden verlenging bij complexe verzoeken. Verzoeken die kennelijk ongegrond of buitensporig zijn mogen worden geweigerd." },
+          { title: "Praktisch", body: "Stel een procedure op. Verifieer de identiteit van de aanvrager. Documenteer elk verzoek en de afhandeling." }
+        ],
+        tags: ["Artikel 15", "1 maand", "Gratis (eerste verzoek)"],
+        praktijk: [
+          { icon: "👤", label: "Medewerker vraagt HR-dossier op", text: "Een medewerker vraagt welke gegevens zijn werkgever over hem bijhoudt. HR levert binnen een maand een volledig overzicht: beoordelingen, loonstroken, ziekmeldingen en opleidingshistorie." },
+          { icon: "🛒", label: "Klant vraagt webshop om data-overzicht", text: "Een klant wil weten wat een webshop over hem weet. Hij ontvangt een export van bestelhistorie, adresgegevens, klikgedrag en e-mailprofiel." }
+        ]
+      },
+      {
+        id: "rectificatie", title: "Recht op rectificatie", short: "Onjuiste gegevens laten corrigeren.",
+        badge: "Artikel 16", intro: "Betrokkenen kunnen verzoeken om onjuiste of onvolledige persoonsgegevens te corrigeren of aan te vullen.",
+        sections: [
+          { title: "Wanneer van toepassing?", body: "Bij feitelijk onjuiste gegevens, maar ook bij onvolledige gegevens als de volledigheid relevant is voor het verwerkingsdoel." },
+          { title: "Doorgifte aan derden", body: "Als de gegevens zijn doorgegeven aan derden, moet u hen informeren over de rectificatie, tenzij dit onmogelijk of onevenredig inspannend is." }
+        ],
+        tags: ["Artikel 16", "Doorgifte informeren"],
+        praktijk: [
+          { icon: "🏠", label: "Onjuist adres bij verzekeraar", text: "Een klant ziet dat zijn oude adres nog in de polisadministratie staat. Hij verzoekt rectificatie; de verzekeraar corrigeert dit en informeert de herverzekerende partij." },
+          { icon: "📋", label: "Foutieve BKR-registratie", text: "Iemand ontdekt een onjuiste achterstallige betaling in zijn kredietregistratie. Hij dient een rectificatieverzoek in; de bank is verplicht de fout te herstellen en BKR hiervan op de hoogte te stellen." }
+        ]
+      },
+      {
+        id: "vergetelheid", title: "Recht op vergetelheid", short: "Verzoeken om gegevens te wissen.",
+        badge: "Artikel 17", intro: "Betrokkenen kunnen verzoeken om verwijdering van hun persoonsgegevens. Dit recht is niet absoluut: er zijn wettelijke uitzonderingen.",
+        sections: [
+          { title: "Gronden voor wissen", body: "Gegevens zijn niet langer nodig voor het doel, de betrokkene trekt toestemming in, er is bezwaar gemaakt, de verwerking is onrechtmatig, of er is een wettelijke verplichting tot wissen." },
+          { title: "Uitzonderingen", body: "Recht op vrijheid van meningsuiting, wettelijke verplichtingen, volksgezondheid, archivering of wetenschappelijk onderzoek, en de uitoefening van rechtsvorderingen." }
+        ],
+        tags: ["Artikel 17", "Niet absoluut"],
+        warnTags: ["Uitzonderingen mogelijk"],
+        praktijk: [
+          { icon: "📰", label: "Oud nieuwsartikel over arrestatie", text: "Iemand die vrijgesproken werd, verzoekt verwijdering van een oud krantenartikel over zijn arrestatie. De uitgever weegt het recht op vergetelheid af tegen de journalistieke vrijheid — context bepaalt de uitkomst." },
+          { icon: "💼", label: "Ex-klant wil data verwijderd", text: "Een voormalige klant wil dat zijn account en alle gegevens worden verwijderd. Het bedrijf wist de marketingdata, maar bewaart factuurgegevens 7 jaar op grond van de fiscale bewaarplicht." }
+        ]
+      },
+      {
+        id: "beperking", title: "Recht op beperking", short: "Verwerking tijdelijk 'bevriezen'.",
+        badge: "Artikel 18", intro: "In bepaalde situaties kan de betrokkene vragen om verwerking te beperken — de gegevens blijven bewaard maar worden niet verder verwerkt.",
+        sections: [
+          { title: "Wanneer van toepassing?", body: "Bij betwisting van de juistheid, bij onrechtmatige verwerking waarbij de betrokkene geen wissing wenst, bij bezwaar in afwachting van de uitkomst, of als de verwerker de gegevens niet meer nodig heeft maar de betrokkene ze nodig heeft voor rechtsvordering." }
+        ],
+        tags: ["Artikel 18", "Tijdelijk", "Bewaren maar niet verwerken"],
+        praktijk: [
+          { icon: "⚖️", label: "Betwiste beoordeling bij ontslag", text: "Een medewerker betwist zijn functioneringsbeoordeling en verzoekt beperking van verwerking. De werkgever mag de gegevens niet verder gebruiken zolang de klacht loopt." },
+          { icon: "📧", label: "Marketingprofiel in bezwaar", text: "Een persoon maakt bezwaar tegen een marketingprofiel. In afwachting van de uitkomst worden de gegevens bevroren: bewaard maar niet gebruikt voor targeting." }
+        ]
+      },
+      {
+        id: "overdraagbaarheid", title: "Recht op gegevensoverdraagbaarheid", short: "Eigen gegevens in machineleesbaar formaat ontvangen.",
+        badge: "Artikel 20", intro: "Betrokkenen kunnen hun gegevens in een gestructureerd, gangbaar en machineleesbaar formaat ontvangen, of overdracht naar een andere verwerkingsverantwoordelijke verzoeken.",
+        sections: [
+          { title: "Scope", body: "Geldt alleen voor gegevens die de betrokkene zelf heeft verstrekt, verwerkt op basis van toestemming of uitvoering van een overeenkomst, en via geautomatiseerde middelen." },
+          { title: "Formaten", body: "Gangbare formaten zijn JSON, CSV of XML. Er is geen wettelijk voorgeschreven formaat, maar het moet machineleesbaar en interoperabel zijn." }
+        ],
+        tags: ["Artikel 20", "JSON/CSV", "Alleen bij toestemming/contract"],
+        praktijk: [
+          { icon: "🏦", label: "Bankgegevens naar nieuwe bank", text: "Een klant stapt over naar een andere bank en vraagt zijn transactiehistorie als CSV-bestand. De oude bank levert dit; de nieuwe bank kan de data direct importeren." },
+          { icon: "🎵", label: "Streamingdata meenemen", text: "Een gebruiker wil zijn luistergeschiedenis en afspeellijsten meenemen van één streamingdienst naar een andere en vraagt zijn data op in JSON-formaat." }
+        ]
+      },
+      {
+        id: "bezwaar", title: "Recht van bezwaar", short: "Bezwaar maken tegen verwerking op basis van gerechtvaardigd belang.",
+        badge: "Artikel 21", intro: "Betrokkenen kunnen bezwaar maken tegen verwerking die gebaseerd is op gerechtvaardigd belang of een algemeen belang. Bij direct marketing moet verwerking altijd staken.",
+        sections: [
+          { title: "Gerechtvaardigd belang", body: "Bij bezwaar op grond van een bijzondere persoonlijke situatie moet de verwerkingsverantwoordelijke aantonen dat dwingende gerechtvaardigde gronden zwaarder wegen." },
+          { title: "Direct marketing", body: "Bezwaar tegen verwerking voor direct marketing is altijd afdwingbaar, zonder opgaaf van reden. Verwerking moet dan onmiddellijk staken." }
+        ],
+        tags: ["Artikel 21", "Direct marketing: altijd honoreren"],
+        praktijk: [
+          { icon: "📬", label: "Afmelden voor reclamepost", text: "Iemand ontvangt ongewenste post op basis van een postcodesegmentatie. Hij maakt bezwaar; het bedrijf moet de verwerking voor direct marketing direct staken — geen nadere onderbouwing vereist." },
+          { icon: "🔍", label: "Bezwaar tegen profilering door verzekeraar", text: "Een klant maakt bezwaar omdat zijn rijgedrag via een app wordt gemonitord voor premiebepaling (gerechtvaardigd belang). De verzekeraar moet aantonen dat haar belang zwaarder weegt, of de verwerking staken." }
+        ]
+      }
+    ]
+  },
+  beginselen: {
+    title: "Beginselen van verwerking",
+    intro: "Artikel 5 AVG bevat de kernbeginselen waaraan elke verwerking van persoonsgegevens moet voldoen. Ze vormen de basis van de hele verordening.",
+    items: [
+      {
+        id: "rechtmatigheid", title: "Rechtmatigheid, behoorlijkheid & transparantie", short: "Verwerking moet rechtmatig, eerlijk en transparant zijn.",
+        badge: "Art. 5(1)(a)", intro: "Persoonsgegevens moeten worden verwerkt op een wijze die ten aanzien van de betrokkene rechtmatig, behoorlijk en transparant is.",
+        sections: [
+          { title: "Rechtmatigheid", body: "Er moet een geldige grondslag (artikel 6) zijn voor elke verwerking. Zonder grondslag is verwerking verboden." },
+          { title: "Transparantie", body: "Betrokkenen moeten geïnformeerd worden over wie hun gegevens verwerkt, waarvoor en op welke grondslag — typisch via een privacyverklaring." }
+        ],
+        tags: ["Artikel 5(1)(a)", "Privacyverklaring verplicht"],
+        praktijk: [
+          { icon: "🏥", label: "Ziekenhuis verwerkt patiëntgegevens", text: "Een ziekenhuis verwerkt medische gegevens op meerdere grondslagen, afhankelijk van het doel. De behandelingsovereenkomst vormt de basis voor dossiervoering en zorgverlening tijdens de behandelrelatie. Na afloop geldt een wettelijke bewaarplicht van 20 jaar, ook als de behandelrelatie is beëindigd. Declaraties aan zorgverzekeraars en meldplichten vallen eveneens onder wettelijke verplichtingen. Bij spoedgevallen waarbij de patiënt geen toestemming kan geven, is vitaal belang de grondslag. Omdat medische gegevens bijzondere persoonsgegevens zijn, is in al deze gevallen daarnaast een aanvullende uitzondering op het verwerkingsverbod vereist. Patiënten worden geïnformeerd via een privacyverklaring bij aanmelding." },
+          { icon: "🎁", label: "Loyaltyprogramma zonder grondslag", text: "Een retailer koppelt aankoopdata aan een loyaltyprofiel zonder de klant te informeren. Dit is onrechtmatig: geen geldige grondslag én geen transparantie naar de klant." }
+        ]
+      },
+      {
+        id: "doelbinding", title: "Doelbinding", short: "Gegevens mogen alleen voor het opgegeven doel worden gebruikt.",
+        badge: "Art. 5(1)(b)", intro: "Persoonsgegevens mogen alleen worden verzameld voor welbepaalde, uitdrukkelijk omschreven en gerechtvaardigde doeleinden.",
+        sections: [
+          { title: "Bijkomende verwerking", body: "Verdere verwerking voor een ander doel is soms toegestaan, mits verenigbaar met het oorspronkelijke doel. Wetenschappelijk onderzoek en archivering hebben een beperkte uitzondering." }
+        ],
+        tags: ["Artikel 5(1)(b)", "Doel vastleggen"],
+        praktijk: [
+          { icon: "📊", label: "HR-data voor marketingdoeleinden", text: "Een bedrijf wil sollicitantendata (verzameld voor werving) gebruiken voor een marketingcampagne. Dit is een onverenigbaar nieuw doel — niet toegestaan zonder nieuwe grondslag." },
+          { icon: "🔬", label: "Klantdata voor wetenschappelijk onderzoek", text: "Een zorgverzekeraar deelt geanonimiseerde claimdata met een universiteit voor gezondheidsonderzoek. Dit is toegestaan als uitzondering op doelbinding, mits passende waarborgen zijn getroffen." }
+        ]
+      },
+      {
+        id: "minimalisering", title: "Dataminimalisatie", short: "Niet meer gegevens verzamelen dan noodzakelijk.",
+        badge: "Art. 5(1)(c)", intro: "Persoonsgegevens moeten toereikend zijn, ter zake dienend en beperkt tot wat noodzakelijk is voor het verwerkingsdoel.",
+        sections: [
+          { title: "Praktisch", body: "Vraag alleen de gegevens die u echt nodig heeft. Vermijd het verzamelen van gegevens 'voor het geval dat'. Voer regelmatig een datainventaris uit." }
+        ],
+        tags: ["Artikel 5(1)(c)", "Privacy by design"],
+        praktijk: [
+          { icon: "📝", label: "Contactformulier vraagt te veel", text: "Een webwinkel vraagt bij een nieuwsbriefinschrijving ook geboortedatum en telefoonnummer. Dat is niet noodzakelijk — alleen e-mailadres volstaat voor dit doel." },
+          { icon: "🎥", label: "CCTV-opnamen bewaken", text: "Een winkel bewaart camerabeelden 90 dagen 'voor het geval dat'. Passend is maximaal 72 uur, tenzij er een concreet incident is. Langere opslag is disproportioneel." }
+        ]
+      },
+      {
+        id: "juistheid", title: "Juistheid", short: "Gegevens moeten accuraat en up-to-date zijn.",
+        badge: "Art. 5(1)(d)", intro: "Gegevens moeten juist zijn en zo nodig worden bijgewerkt. Onjuiste gegevens moeten onverwijld worden gewist of gerectificeerd.",
+        sections: [
+          { title: "Beleid", body: "Implementeer processen om gegevens periodiek te controleren en bij te werken. Bied betrokkenen een makkelijke manier aan om gegevens te corrigeren." }
+        ],
+        tags: ["Artikel 5(1)(d)", "Periodiek controleren"],
+        praktijk: [
+          { icon: "🏠", label: "Verhuisde klant in CRM", text: "Een klant is verhuisd maar het CRM toont nog het oude adres. Het systeem stuurt brieven naar het verkeerde adres — een AVG-probleem. Periodieke validatie van adressen is verplicht." },
+          { icon: "🏥", label: "Verouderd medicatieschema in EPD", text: "Een zorginstelling heeft een patiënt een verouderd medicatieschema in het elektronisch patiëntendossier staan. Onjuiste medische data kan direct schade toebrengen en moet onmiddellijk worden gecorrigeerd." }
+        ]
+      },
+      {
+        id: "opslagbeperking", title: "Opslagbeperking", short: "Gegevens niet langer bewaren dan nodig.",
+        badge: "Art. 5(1)(e)", intro: "Persoonsgegevens mogen niet langer worden bewaard dan noodzakelijk voor het verwerkingsdoel. Stel heldere bewaartermijnen vast.",
+        sections: [
+          { title: "Bewaartermijnen", body: "Leg per gegevenscategorie de bewaartermijn vast. Na afloop moeten gegevens worden gewist of geanonimiseerd. Wettelijke bewaartermijnen (bv. fiscaal: 7 jaar) kunnen afwijken." }
+        ],
+        tags: ["Artikel 5(1)(e)", "Retentiebeleid vereist"],
+        praktijk: [
+          { icon: "📁", label: "Sollicitatiedata na afwijzing", text: "Een afgewezen sollicitant wil weten hoe lang zijn cv bewaard blijft. De standaardtermijn is 4 weken na afwijzing, tenzij de kandidaat toestemming geeft voor 1 jaar (voor toekomstige vacatures)." },
+          { icon: "🧾", label: "Klantgegevens na opzegging", text: "Een telecomprovider bewaart alle klantdata 10 jaar na contracteinde. De fiscale bewaarplicht geldt voor factuurdata (7 jaar), maar NAW-gegevens mogen na contracteinde niet langer dan nodig worden bewaard." }
+        ]
+      },
+      {
+        id: "integriteit", title: "Integriteit & vertrouwelijkheid", short: "Passende beveiliging van gegevens garanderen.",
+        badge: "Art. 5(1)(f)", intro: "Persoonsgegevens moeten worden verwerkt op een manier die passende beveiliging garandeert, inclusief bescherming tegen ongeoorloofde of onrechtmatige verwerking en tegen onopzettelijk verlies.",
+        sections: [
+          { title: "Technische maatregelen", body: "Encryptie, toegangscontrole, pseudonimisering, regelmatige back-ups en beveiligingstests zijn typische maatregelen." }
+        ],
+        tags: ["Artikel 5(1)(f)", "Encryptie", "Toegangscontrole"],
+        praktijk: [
+          { icon: "🔓", label: "Onbeveiligde klantendatabase", text: "Een bedrijf bewaart klantgegevens in een Excel-bestand op een gedeelde schijf zonder wachtwoordbeveiliging. Dit is een flagrante schending van het integriteitsbeginsel." },
+          { icon: "🏥", label: "Toegangscontrole in zorginstelling", text: "Een verpleegkundige raadpleegt het dossier van een beroemdheid zonder therapeutische noodzaak. Rolgebaseerde toegangscontrole en auditlogs hadden dit moeten voorkomen en detecteren." }
+        ]
+      }
+    ]
+  },
+  grondslagen: {
+    title: "Rechtmatige grondslagen",
+    intro: "Artikel 6 AVG somt zes grondslagen op waarop verwerking van persoonsgegevens rechtmatig kan zijn. Elke verwerking moet op minimaal één grondslag berusten.",
+    items: [
+      {
+        id: "toestemming", title: "Toestemming", short: "De betrokkene geeft vrije, specifieke en geïnformeerde toestemming.",
+        badge: "Art. 6(1)(a)", intro: "Toestemming moet vrij, specifiek, geïnformeerd en ondubbelzinnig zijn. Intrekking moet net zo eenvoudig zijn als het geven ervan.",
+        sections: [
+          { title: "Vereisten", body: "Geen voorwaarde voor dienst, granulair per doel, actieve handeling vereist (geen pre-aangevinkte vakjes), en aantoonbaar gedocumenteerd." },
+          { title: "Intrekking", body: "Betrokkene kan toestemming altijd intrekken. Verwerking vóór intrekking blijft rechtmatig." }
+        ],
+        tags: ["Artikel 6(1)(a)", "Gedocumenteerd bewaren"],
+        warnTags: ["Niet altijd de beste keuze"],
+        praktijk: [
+          { icon: "✅", label: "Cookiebanner op website", text: "Een website vraagt via een cookiebanner toestemming voor analytische en marketingcookies. Per doel apart een vinkje, geen pre-aangevinkte vakjes, en een even makkelijke optie om te weigeren." },
+          { icon: "❌", label: "Nieuwsbrief als voorwaarde voor aankoop", text: "Een webshop verplicht klanten de nieuwsbrief te accepteren om een aankoop te doen. Dit is geen vrije toestemming — de grondslag is ongeldig, want de dienst is afhankelijk gesteld van toestemming." }
+        ]
+      },
+      {
+        id: "contract", title: "Uitvoering van een overeenkomst", short: "Verwerking noodzakelijk voor een contract met de betrokkene.",
+        badge: "Art. 6(1)(b)", intro: "Verwerking is noodzakelijk voor de uitvoering van een overeenkomst waarbij de betrokkene partij is, of voor precontractuele stappen op verzoek van de betrokkene.",
+        sections: [
+          { title: "Scope", body: "Klantgegevens verwerken voor levering van een product of dienst is een typisch voorbeeld. De verwerking moet noodzakelijk zijn — bijkomende marketing valt hier niet onder." }
+        ],
+        tags: ["Artikel 6(1)(b)", "Klantrelatie"],
+        praktijk: [
+          { icon: "📦", label: "Adresgegevens voor bezorging", text: "Een webshop verwerkt naam en adres om een bestelling te bezorgen. Dit is noodzakelijk voor de uitvoering van de koopovereenkomst — geen aparte toestemming vereist." },
+          { icon: "📊", label: "Marketing als bijzaak", text: "Dezelfde webshop wil ook een profiel opbouwen voor gerichte advertenties. Dit valt niet onder de uitvoering van het contract — hiervoor is een andere grondslag (toestemming of gerechtvaardigd belang) nodig." }
+        ]
+      },
+      {
+        id: "wettelijk", title: "Wettelijke verplichting", short: "Verwerking vereist door toepasselijk recht.",
+        badge: "Art. 6(1)(c)", intro: "De verwerkingsverantwoordelijke heeft een wettelijke verplichting om bepaalde gegevens te verwerken of te bewaren.",
+        sections: [
+          { title: "Voorbeelden", body: "Fiscale bewaarplicht (facturen 7 jaar), loonadministratie, verlofregistratie, of identificatieplicht zijn typische wettelijke verplichtingen." }
+        ],
+        tags: ["Artikel 6(1)(c)", "Wettelijk voorgeschreven"],
+        praktijk: [
+          { icon: "🧾", label: "Facturen bewaren voor Belastingdienst", text: "Een ondernemer bewaart facturen met NAW-gegevens van klanten 7 jaar. Dit is een wettelijke verplichting — de AVG staat dit toe, ook als de klant verwijdering vraagt." },
+          { icon: "🏦", label: "UBO-registratie door bank", text: "Een bank is wettelijk verplicht de uiteindelijk begunstigden (UBO's) van zakelijke klanten te registreren in het kader van de Wet ter voorkoming van witwassen (Wwft)." }
+        ]
+      },
+      {
+        id: "vitaal", title: "Vitale belangen", short: "Bescherming van levensbelangen.",
+        badge: "Art. 6(1)(d)", intro: "Verwerking is noodzakelijk om de vitale belangen van de betrokkene of een andere persoon te beschermen.",
+        sections: [
+          { title: "Wanneer?", body: "Noodsituaties waarbij de betrokkene niet in staat is toestemming te geven, zoals medische spoedhulp. Deze grondslag is in de praktijk zelden van toepassing buiten de zorgsector." }
+        ],
+        tags: ["Artikel 6(1)(d)", "Noodsituaties", "Zelden van toepassing"],
+        praktijk: [
+          { icon: "🚑", label: "Bewusteloze patiënt op de SEH", text: "Een bewusteloze patiënt wordt binnengebracht. Het ziekenhuis raadpleegt het huisartsendossier om medicatie-allergie te controleren, zonder dat de patiënt toestemming kan geven. Vitaal belang rechtvaardigt dit." },
+          { icon: "🌍", label: "Ramp of noodsituatie", text: "Bij een brand deelt een hotel de gastenlijst met hulpverleners om vermisten op te sporen. De vitale belangen van mogelijk ingesloten personen rechtvaardigen de verstrekking." }
+        ]
+      },
+      {
+        id: "publiek", title: "Publieke taak", short: "Verwerking voor uitoefening van een openbaar gezag.",
+        badge: "Art. 6(1)(e)", intro: "Verwerking is noodzakelijk voor de vervulling van een taak van algemeen belang of de uitoefening van het openbaar gezag.",
+        sections: [
+          { title: "Toepassingsgebied", body: "Primair voor overheidsorganen en publieke instellingen. Private organisaties met een wettelijk gedelegeerde taak (bijv. keuringsinstanties) kunnen hier soms ook op beroepen." }
+        ],
+        tags: ["Artikel 6(1)(e)", "Overheid & publieke taken"],
+        praktijk: [
+          { icon: "🏛️", label: "Gemeente verwerkt belastingdata", text: "Een gemeente verwerkt inkomensgegevens voor de berekening van gemeentelijke heffingen. Dit geschiedt op basis van de publieke taak — geen toestemming van inwoners vereist." },
+          { icon: "🎓", label: "Onderwijsinstelling en leerlingadministratie", text: "Een school registreert aanwezigheid, cijfers en leerlingdossiers in het kader van haar wettelijke onderwijstaak. Ouders kunnen dit niet weigeren; de grondslag is de publieke taak." }
+        ]
+      },
+      {
+        id: "belang", title: "Gerechtvaardigd belang", short: "Afweging: belang verwerkingsverantwoordelijke vs. rechten betrokkene.",
+        badge: "Art. 6(1)(f)", intro: "Verwerking is noodzakelijk voor de gerechtvaardigde belangen van de verwerkingsverantwoordelijke of een derde, tenzij de belangen van de betrokkene zwaarder wegen.",
+        sections: [
+          { title: "Drie-stapstoets", body: "1) Is er een gerechtvaardigd belang? 2) Is verwerking noodzakelijk voor dat belang? 3) Weegt het belang op tegen de rechten van de betrokkene?" },
+          { title: "Documenteer de afweging", body: "Leg de Legitimate Interests Assessment (LIA) schriftelijk vast. Niet van toepassing voor overheidsorganen bij uitoefening van hun taken." }
+        ],
+        tags: ["Artikel 6(1)(f)", "LIA documenteren"],
+        warnTags: ["Niet voor overheid"],
+        praktijk: [
+          { icon: "🔒", label: "Fraudepreventie door bank", text: "Een bank analyseert transactiepatronen om fraude te detecteren. Het beveiligingsbelang weegt zwaarder dan de beperkte privacyinbreuk — mits gedocumenteerd in een LIA en betrokkenen zijn geïnformeerd." },
+          { icon: "📧", label: "B2B e-mailmarketing", text: "Een softwarebedrijf mailt zakelijke contacten over een relevant product update. Gerechtvaardigd belang is hier plausibel: beperkte inbreuk, verwachte relevantie, makkelijk opt-out aangeboden." }
+        ]
+      }
+    ]
+  },
+  beveiliging: {
+    title: "Beveiliging & datalekken",
+    intro: "De AVG verplicht organisaties tot passende technische en organisatorische maatregelen. Bij een inbreuk gelden strikte meldtermijnen.",
+    items: [
+      {
+        id: "maatregelen", title: "Passende beveiligingsmaatregelen", short: "Technische en organisatorische maatregelen implementeren.",
+        badge: "Artikel 32", intro: "Rekening houdend met de stand der techniek, kosten, aard en risico's moet de verwerkingsverantwoordelijke passende maatregelen nemen.",
+        sections: [
+          { title: "Technische maatregelen", body: "Pseudonimisering, encryptie (in transit en at rest), toegangscontrole op basis van need-to-know, firewalls, beveiligde verbindingen (TLS), regelmatige patches en updates." },
+          { title: "Organisatorische maatregelen", body: "Bewustwordingstraining, clean desk policy, incidentresponse procedure, leveranciersmanagement, regelmatige penetratietests en DPIA's." }
+        ],
+        tags: ["Artikel 32", "Encryptie", "Toegangscontrole", "Training"],
+        praktijk: [
+          { icon: "🔐", label: "Laptop gestolen zonder encryptie", text: "Een medewerker verliest een laptop met klantgegevens. Zonder schijfencryptie is dit direct een meldingsplichtig datalek. Met encryptie is het risico nihil en is melding niet vereist." },
+          { icon: "🎓", label: "Phishing-training personeel", text: "Een zorginstelling traint medewerkers maandelijks met gesimuleerde phishing-e-mails. Dit is een passende organisatorische maatregel die de kans op een datalek significant verkleint." }
+        ]
+      },
+      {
+        id: "melding-ap", title: "Melden aan Autoriteit Persoonsgegevens", short: "Datalek melden binnen 72 uur.",
+        badge: "Artikel 33", intro: "Een inbreuk in verband met persoonsgegevens moet onverwijld en indien mogelijk binnen 72 uur na ontdekking worden gemeld bij de toezichthoudende autoriteit.",
+        sections: [
+          { title: "Wanneer melden?", body: "Altijd als er een risico is voor de rechten en vrijheden van betrokkenen. Bij gering risico mag de melding achterwege blijven, maar documenteer dit dan in het register van datalekken." },
+          { title: "Inhoud melding", body: "Aard van de inbreuk, categorieën en aantallen betrokkenen, contactgegevens FG of contactpersoon, vermoedelijke gevolgen, en genomen/te nemen maatregelen." }
+        ],
+        tags: ["Artikel 33", "72 uur!", "AP loket"],
+        warnTags: ["Snelle actie vereist"],
+        praktijk: [
+          { icon: "⏱️", label: "Ransomware-aanval op maandagmorgen", text: "Een bedrijf ontdekt maandagochtend dat systemen zijn versleuteld door ransomware met klantdata. De 72-uur klok loopt vanaf ontdekking — woensdag vóór hetzelfde tijdstip moet de melding bij de AP zijn." },
+          { icon: "📮", label: "Brief met BSN bezorgd op verkeerd adres", text: "Een brief met BSN-nummers wordt per ongeluk aan de verkeerde persoon bezorgd. Dit is een datalek dat bij de AP gemeld moet worden als er risico is voor de betrokkene." }
+        ]
+      },
+      {
+        id: "melding-betrokkene", title: "Melden aan betrokkenen", short: "Hoog risico datalek ook melden aan de gedupeerden.",
+        badge: "Artikel 34", intro: "Als een inbreuk waarschijnlijk een hoog risico meebrengt voor de rechten en vrijheden van betrokkenen, moeten deze personen ook worden geïnformeerd.",
+        sections: [
+          { title: "Wanneer?", body: "Bij hoog risico — bijv. financiële gegevens, medische gegevens, wachtwoorden, identiteitsdiefstal. Beoordeel aan de hand van aard, omvang en waarschijnlijkheid van schade." },
+          { title: "Uitzonderingen", body: "Geen melding nodig als de gegevens versleuteld waren, de verwerkingsverantwoordelijke maatregelen heeft getroffen waardoor het risico teniet is gedaan, of als dit onevenredig veel inspanning kost (dan een openbare mededeling)." }
+        ],
+        tags: ["Artikel 34", "Hoog risico", "Directe communicatie"],
+        praktijk: [
+          { icon: "💳", label: "Lek van betaalgegevens", text: "Bij een hack worden creditcardgegevens en wachtwoorden van 50.000 klanten buitgemaakt. Hoog risico: klanten worden direct per e-mail geïnformeerd en geadviseerd kaarten te blokkeren en wachtwoorden te wijzigen." },
+          { icon: "📋", label: "Toegang tot medische dossiers", text: "Een beveiligingslek geeft onbevoegde toegang tot medische dossiers van patiënten. Dit is een hoog risico — alle betrokken patiënten moeten persoonlijk worden geïnformeerd, ook als misbruik niet is vastgesteld." }
+        ]
+      },
+      {
+        id: "register-datalekken", title: "Register van inbreuken", short: "Alle datalekken intern documenteren.",
+        badge: "Artikel 33(5)", intro: "Alle inbreuken moeten worden gedocumenteerd in een intern register, ook als ze niet worden gemeld aan de AP. Dit dient als accountability-middel.",
+        sections: [
+          { title: "Wat vastleggen?", body: "Feiten van de inbreuk, de gevolgen, en de genomen herstelmaatregelen. Bewaar dit register permanent zodat de AP dit bij een audit kan controleren." }
+        ],
+        tags: ["Artikel 33(5)", "Intern register", "Altijd documenteren"],
+        praktijk: [
+          { icon: "📓", label: "E-mail naar verkeerde ontvanger", text: "Een medewerker stuurt een e-mail met persoonsgegevens naar een verkeerde collega. Geen AP-melding nodig (gering risico), maar wél opnemen in het interne datalekregister met datum, aard en herstelactie." },
+          { icon: "🔍", label: "AP-audit naar naleving", text: "De AP voert een thema-onderzoek uit naar datalekbeheer. Het interne register toont aan dat lekken consequent worden gedocumenteerd — dit is een concrete blijk van accountability." }
+        ]
+      }
+    ]
+  },
+  organisatie: {
+    title: "Organisatorische verplichtingen",
+    intro: "De AVG legt organisaties tal van administratieve en organisatorische plichten op om aantoonbaar te voldoen aan de verordening ('accountability').",
+    items: [
+      {
+        id: "verwerkingsregister", title: "Verwerkingsregister", short: "Register bijhouden van alle verwerkingsactiviteiten.",
+        badge: "Artikel 30", intro: "Verwerkingsverantwoordelijken en verwerkers met ≥250 medewerkers, of die risicovolle verwerkingen uitvoeren, zijn verplicht een register bij te houden.",
+        sections: [
+          { title: "Inhoud", body: "Naam en contactgegevens, doel van verwerking, categorieën betrokkenen en gegevens, ontvangers, eventuele doorgifte aan derde landen, bewaartermijnen, en beschrijving van beveiligingsmaatregelen." },
+          { title: "Praktisch", body: "Houd het register actueel. Gebruik het als basis voor privacyverklaringen en DPIA's. De AP kan hierom vragen tijdens een audit." }
+        ],
+        tags: ["Artikel 30", "Verplicht tenzij <250 medewerkers", "Actueel houden"],
+        praktijk: [
+          { icon: "🏢", label: "MKB-bedrijf met bijzondere gegevens", text: "Een psychologenpraktijk heeft minder dan 250 medewerkers maar verwerkt bijzondere categorieën (gezondheidsdata). Daarmee is een verwerkingsregister tóch verplicht, ongeacht de bedrijfsomvang." },
+          { icon: "📋", label: "Nieuw CRM-systeem implementeren", text: "Een organisatie introduceert een nieuw CRM. Vóór ingebruikname moet de verwerking worden toegevoegd aan het register: doel, categorieën, bewaartermijn, ontvangers en beveiligingsmaatregelen." }
+        ]
+      },
+      {
+        id: "fg", title: "Functionaris voor gegevensbescherming (FG)", short: "Verplicht bij overheid en bepaalde risicovolle verwerkingen.",
+        badge: "Artikel 37-39", intro: "Een FG is verplicht voor overheidsinstanties, voor verwerkingen die regelmatige stelselmatige monitoring van betrokkenen op grote schaal vereisen, en bij grootschalige verwerking van bijzondere categorieën.",
+        sections: [
+          { title: "Taken FG", body: "Informeren en adviseren, toezien op naleving, samenwerken met de toezichthoudende autoriteit, optreden als contactpunt voor betrokkenen en de AP." },
+          { title: "Onafhankelijkheid", body: "De FG mag niet worden ontslagen of benadeeld wegens de uitvoering van zijn taken. De FG rapporteert aan het hoogste bestuursniveau." }
+        ],
+        tags: ["Artikel 37-39", "Intern of extern", "Onafhankelijk"],
+        praktijk: [
+          { icon: "⚖️", label: "Gemeente moet FG aanstellen", text: "Elke gemeente is als overheidsorgaan verplicht een FG aan te stellen. Kleine gemeenten kunnen dit gezamenlijk doen via een gedeelde FG, mits onafhankelijkheid gewaarborgd is." },
+          { icon: "🏭", label: "Fabriek met grootschalige profildering", text: "Een retailketen profileert miljoenen klanten systematisch voor personalisatie. Dit vereist een FG. De FG adviseert de directie — ook als de directie het advies niet opvolgt." }
+        ]
+      },
+      {
+        id: "dpia", title: "Gegevensbeschermingseffectbeoordeling (DPIA)", short: "Risicoanalyse bij hoog-risico verwerkingen.",
+        badge: "Artikel 35", intro: "Een DPIA is verplicht vóór de start van verwerkingen die waarschijnlijk een hoog risico inhouden voor de rechten en vrijheden van betrokkenen.",
+        sections: [
+          { title: "Wanneer verplicht?", body: "Systematische beoordeling van personen (profilering), grootschalige verwerking van bijzondere categorieën, stelselmatige monitoring van openbaar toegankelijke ruimten. De AP publiceert een lijst van verwerkingen waarvoor een DPIA verplicht is." },
+          { title: "Inhoud DPIA", body: "Beschrijving van de verwerking en doelen, noodzakelijkheids- en evenredigheidstoets, risicobeoordeling, en maatregelen om risico's te mitigeren." }
+        ],
+        tags: ["Artikel 35", "Vóór start verwerking", "Raadpleeg FG"],
+        praktijk: [
+          { icon: "📍", label: "Gezichtsherkenning op de werkvloer", text: "Een bedrijf wil aanwezigheidsregistratie via gezichtsherkenning invoeren. Dit is systematische biometrische verwerking — een DPIA is verplicht vóór implementatie. De AP heeft dit type op haar lijst gezet." },
+          { icon: "🤖", label: "AI-model voor kredietbeoordeling", text: "Een financiële instelling wil een AI-algoritme gebruiken voor automatische kredietbeslissingen. Systematische profilering met rechtsgevolgen: DPIA verplicht, en mogelijk voorafgaande raadpleging van de AP." }
+        ]
+      },
+      {
+        id: "verwerkersovereenkomst", title: "Verwerkersovereenkomst", short: "Contract met verwerkers die gegevens namens u verwerken.",
+        badge: "Artikel 28", intro: "Wanneer u persoonsgegevens laat verwerken door een derde (verwerker), bent u verplicht een verwerkersovereenkomst af te sluiten.",
+        sections: [
+          { title: "Verplichte inhoud", body: "Het onderwerp, de duur, de aard en het doel van de verwerking, categorieën persoonsgegevens, instructies van de verwerkingsverantwoordelijke, beveiligingsmaatregelen, en afspraken over subverwerkers en audits." }
+        ],
+        tags: ["Artikel 28", "Altijd schriftelijk", "Inclusief subverwerkers"],
+        praktijk: [
+          { icon: "☁️", label: "SaaS-provider als verwerker", text: "Een bedrijf gebruikt een cloudgebaseerde HR-tool. De SaaS-provider verwerkt medewerkerdata namens het bedrijf — een verwerkersovereenkomst is verplicht vóór ingebruikname, ook als de provider een standaardcontract aanbiedt." },
+          { icon: "📞", label: "Callcenter ingeschakeld", text: "Een organisatie besteedt klantenservice uit aan een extern callcenter. Het callcenter verwerkt klantgegevens namens de organisatie. In de verwerkersovereenkomst moet ook staan welke subverwerkers het callcenter inschakelt." }
+        ]
+      }
+    ]
+  },
+  doorgifte: {
+    title: "Internationale doorgifte",
+    intro: "Doorgifte van persoonsgegevens naar landen buiten de Europese Economische Ruimte (EER) is alleen toegestaan als een passend beschermingsniveau is gewaarborgd.",
+    items: [
+      {
+        id: "adequaatheidsbesluit", title: "Adequaatheidsbesluit", short: "Europese Commissie heeft het land als veilig erkend.",
+        badge: "Artikel 45", intro: "Als de Europese Commissie heeft vastgesteld dat een derde land een passend beschermingsniveau biedt, mag doorgifte plaatsvinden zonder aanvullende maatregelen.",
+        sections: [
+          { title: "Erkende landen", body: "Onder andere: Zwitserland, VK, Canada (commercieel), Japan, Nieuw-Zeeland, Israël, Argentinië, Uruguay, en aangewezen staten in de VS (EU-US Data Privacy Framework)." }
+        ],
+        tags: ["Artikel 45", "Geen extra maatregelen nodig"],
+        praktijk: [
+          { icon: "🇨🇭", label: "Data opgeslagen bij Zwitserse hostingpartij", text: "Een Nederlandse organisatie gebruikt een Zwitserse hostingprovider. Zwitserland heeft een adequaatheidsbesluit — doorgifte is toegestaan zonder aanvullende contractuele maatregelen." },
+          { icon: "🇺🇸", label: "VS via EU-US Data Privacy Framework", text: "Een bedrijf stuurt klantdata naar een Amerikaanse partner die gecertificeerd is onder het EU-US DPF. Dit volstaat als doorgifte-mechanisme zolang het bedrijf op de DPF-lijst staat." }
+        ]
+      },
+      {
+        id: "scc", title: "Standaardcontractbepalingen (SCC)", short: "Goedgekeurde modelcontracten van de Europese Commissie.",
+        badge: "Artikel 46(2)(c)", intro: "De meest gebruikte mechanisme. De EC heeft standaardcontracten goedgekeurd die voldoende waarborgen bieden voor doorgifte naar derde landen.",
+        sections: [
+          { title: "Gebruik", body: "Implementeer de meest recente SCC's (2021) in uw contracten met ontvangers buiten de EER. Voer ook een Transfer Impact Assessment (TIA) uit om te beoordelen of het recht in het ontvangstland de bescherming ondermijnt." },
+          { title: "Let op: VS", body: "Na Schrems II is een TIA verplicht. Gebruik nu het EU-US Data Privacy Framework (DPF) certificaat van de ontvanger, of SCC's met TIA." }
+        ],
+        tags: ["Artikel 46", "SCC 2021", "TIA vereist"],
+        warnTags: ["Schrems II gevolgen"],
+        praktijk: [
+          { icon: "📝", label: "Doorgifte naar Indiaas IT-bedrijf", text: "Een organisatie werkt met een Indiase IT-partner. India heeft geen adequaatheidsbesluit — SCC's worden afgesloten én een Transfer Impact Assessment uitgevoerd om te beoordelen of Indiase wetgeving de bescherming ondermijnt." },
+          { icon: "🔍", label: "TIA voor VS-doorgifte", text: "Een bedrijf gebruikt AWS US-east. Na Schrems II is een TIA verplicht: worden de gegevens potentieel door de NSA opgevorderd? De uitkomst bepaalt of aanvullende maatregelen (zoals encryptie met eigen sleutelbeheer) nodig zijn." }
+        ]
+      },
+      {
+        id: "bcr", title: "Binding Corporate Rules (BCR)", short: "Goedgekeurde interne regels voor multinationals.",
+        badge: "Artikel 47", intro: "Multinationale ondernemingen kunnen BCR's laten goedkeuren voor intragroepsdoorstroom van persoonsgegevens.",
+        sections: [
+          { title: "Proces", body: "BCR's moeten worden goedgekeurd door de lead supervisory authority. Dit is een intensief goedkeuringsproces maar biedt daarna een robuust doorgiftemechanisme voor de hele groep." }
+        ],
+        tags: ["Artikel 47", "Intragroep", "Goedkeuring AP vereist"],
+        praktijk: [
+          { icon: "🌍", label: "Multinational met HR-systeem in VS", text: "Een multinational met vestigingen in 30 landen heeft een globaal HR-platform in de VS. BCR's zijn goedgekeurd door de AP — intragroepsdoorstroom van medewerkerdata is daarmee in één keer geregeld." },
+          { icon: "⏳", label: "Lange doorlooptijd van BCR-goedkeuring", text: "Een organisatie start het BCR-traject maar ontdekt dat goedkeuring 2 tot 3 jaar kan duren. In de tussentijd worden SCC's gebruikt als tijdelijke oplossing." }
+        ]
+      },
+      {
+        id: "uitzonderingen-doorgifte", title: "Afwijkingen (derogaties)", short: "Specifieke uitzonderingsgronden voor doorgifte.",
+        badge: "Artikel 49", intro: "Bij afwezigheid van een adequaatheidsbesluit of passende garanties, kan doorgifte soms plaatsvinden op basis van specifieke derogaties.",
+        sections: [
+          { title: "Voorbeelden", body: "Uitdrukkelijke toestemming van de betrokkene (met informatie over de risico's), noodzaak voor uitvoering van een contract, vitale belangen, of zwaarwegende redenen van openbaar belang." },
+          { title: "Beperkt gebruik", body: "Derogaties zijn bedoeld voor incidentele gevallen, niet voor structurele doorgiften. Documenteer de afweging zorgvuldig." }
+        ],
+        tags: ["Artikel 49", "Incidenteel gebruik"],
+        warnTags: ["Niet voor structurele doorgifte"],
+        praktijk: [
+          { icon: "✈️", label: "Noodsituatie op reis", text: "Een Nederlander raakt ernstig ziek in Australië. Het ziekenhuis vraagt zijn huisarts om medische gegevens. Doorgifte op basis van vitale belangen is gerechtvaardigd, ook zonder adequaatheidsbesluit." },
+          { icon: "⚠️", label: "Toestemming als noodoplossing", text: "Een startup stuurt dagelijks klantdata naar een niet-adequaat land op basis van 'toestemming'. Dit is structureel gebruik van een derogatie — niet toegestaan. Een SCC of adequaatheidsbesluit is vereist." }
+        ]
+      }
+    ]
+  },
+  classificatie: {
+    title: "Persoonsgegevens & classificatie",
+    intro: "Niet alle persoonsgegevens zijn even gevoelig. De AVG maakt onderscheid tussen gewone persoonsgegevens, bijzondere categorieën en specifiek beschermde gegevens. Hoe gevoeliger de gegevens, hoe zwaarder de eisen.",
+    items: [
+      {
+        id: "gewone-persoonsgegevens", title: "Gewone persoonsgegevens", short: "Alle informatie die een persoon direct of indirect identificeerbaar maakt.",
+        badge: "Artikel 4(1)",
+        intro: "Een persoonsgegeven is elke informatie betreffende een geïdentificeerde of identificeerbare natuurlijke persoon. Dit omvat een breed scala aan gegevens — van naam en adres tot IP-adres en cookie-ID.",
+        sections: [
+          { title: "Voorbeelden", body: "Naam, adres, geboortedatum, e-mailadres, telefoonnummer, IP-adres, locatiegegevens, klantnummer, foto, functietitel, salaris, browsergeschiedenis. Ook combinaties van op zichzelf neutrale gegevens kunnen een persoonsgegeven vormen." },
+          { title: "Indirect identificeerbaar", body: "Gegevens hoeven een persoon niet direct te identificeren. Als ze in combinatie met andere gegevens tot identificatie kunnen leiden, vallen ze onder de AVG. Denk aan een postcode + geboortedatum + geslacht — samen vrijwel uniek identificerend." },
+          { title: "Anonieme gegevens", body: "Gegevens die onomkeerbaar geanonimiseerd zijn vallen buiten de AVG. Pseudonimisering (vervanging door een code) is geen anonimisering: de sleutel bestaat nog, dus de AVG blijft van toepassing." }
+        ],
+        tags: ["Artikel 4(1)", "Identificeerbaarheid", "Pseudonimisering"],
+        praktijk: [
+          { icon: "📧", label: "E-mailadres van werknemer", text: "jan.dejong@bedrijf.nl is een persoonsgegeven: het bevat de naam van een persoon en is direct herleidbaar. Ook functionele adressen zoals info@bedrijf.nl kunnen persoonsgegevens zijn als ze aan één persoon gekoppeld zijn." },
+          { icon: "📍", label: "IP-adres van websitebezoeker", text: "Een IP-adres is een persoonsgegeven, ook al kent u de naam van de bezoeker niet. Via de internetprovider is het adres herleidbaar naar een persoon. U moet dit vermelden in uw privacyverklaring." }
+        ]
+      },
+      {
+        id: "bijzondere-categorieen", title: "Bijzondere categorieën (Art. 9)", short: "Extra beschermde gegevens waarvoor verwerking in principe verboden is.",
+        badge: "Artikel 9",
+        intro: "De AVG verbiedt in beginsel de verwerking van bijzondere categorieën persoonsgegevens vanwege hun gevoelige aard. Verwerking is alleen toegestaan op basis van een uitdrukkelijke uitzondering én een reguliere verwerkingsgrondslag.",
+        sections: [
+          { title: "De negen categorieën", body: "1. Ras of etnische afkomst. 2. Politieke opvattingen. 3. Religieuze of levensbeschouwelijke overtuigingen. 4. Vakbondslidmaatschap. 5. Genetische gegevens. 6. Biometrische gegevens (ter identificatie). 7. Gezondheidsgegevens. 8. Seksueel gedrag of seksuele gerichtheid. 9. Gegevens over het seksleven." },
+          { title: "Uitzonderingen op het verbod", body: "Uitdrukkelijke toestemming, arbeidsrechtelijke verplichtingen, vitale belangen, stichtingen/verenigingen met levensbeschouwelijk doel, door betrokkene openbaar gemaakt, rechtsvorderingen, zwaarwegend algemeen belang, preventieve geneeskunde, volksgezondheid, en archivering/onderzoek." },
+          { title: "Extra maatregelen vereist", body: "Bij verwerking van bijzondere categorieën is een DPIA vaak verplicht. Beperk toegang strikt tot medewerkers met een noodzaak. Documenteer de uitzonderingsgrond expliciet in het verwerkingsregister." }
+        ],
+        tags: ["Artikel 9", "DPIA vereist", "Strenge beveiliging"],
+        warnTags: ["Verwerking in beginsel verboden"],
+        praktijk: [
+          { icon: "🏥", label: "Gezondheidsgegevens bij HR", text: "Een werkgever vraagt een zieke werknemer naar zijn diagnose. Dit is niet toegestaan: de werkgever mag alleen weten dát iemand ziek is, niet waaraan. De bedrijfsarts verwerkt de medische details — niet de HR-afdeling." },
+          { icon: "📸", label: "Gezichtsherkenning voor toegangscontrole", text: "Biometrische gegevens ter identificatie vallen onder Art. 9. Een bedrijf dat gezichtsherkenning gebruikt voor toegangscontrole verwerkt bijzondere categorieën — uitdrukkelijke toestemming of een andere uitzondering is vereist, plus een DPIA." }
+        ]
+      },
+      {
+        id: "strafrechtelijke-gegevens", title: "Strafrechtelijke gegevens (Art. 10)", short: "Gegevens over veroordelingen en strafbare feiten vereisen speciale bevoegdheid.",
+        badge: "Artikel 10",
+        intro: "Gegevens over strafrechtelijke veroordelingen, strafbare feiten en daarmee verband houdende veiligheidsmaatregelen mogen alleen worden verwerkt onder toezicht van de overheid of op basis van een nationale uitzondering.",
+        sections: [
+          { title: "Wat valt hieronder?", body: "Veroordelingen, lopende strafzaken, verdenkingen, vrijspraken, sepots, en veiligheidsmaatregelen zoals reclasseringstoezicht. Ook screeningen op strafrechtelijk verleden (VOG-aanvragen) raken aan dit artikel." },
+          { title: "Wie mag verwerken?", body: "Overheidsinstanties in het kader van hun wettelijke taak. Private partijen alleen als nationale wet een expliciete grondslag biedt. In Nederland: Wet justitiële en strafvorderlijke gegevens (Wjsg) en de Wet politiegegevens (Wpg)." },
+          { title: "Aandachtspunt voor werkgevers", body: "Een werkgever mag vragen om een VOG, maar mag geen eigen register bijhouden van strafrechtelijke gegevens van sollicitanten of medewerkers. De uitkomst (geschikt/niet geschikt) mag wel worden vastgelegd." }
+        ],
+        tags: ["Artikel 10", "Wjsg", "VOG"],
+        warnTags: ["Alleen overheid of wettelijke grondslag"],
+        praktijk: [
+          { icon: "📋", label: "VOG bij sollicitatie", text: "Een zorginstelling vraagt een VOG aan een sollicitant. De instelling mag de uitkomst (verstrekt/niet verstrekt) registreren, maar mag het VOG-document zelf niet kopiëren of bewaren. Na de aanstellingsbeslissing moet het worden vernietigd." },
+          { icon: "🔍", label: "Eigen antecedentenonderzoek", text: "Een beveiligingsbedrijf wil zelf navragen of sollicitanten een strafblad hebben. Dit is niet toegestaan zonder wettelijke grondslag — ook niet met toestemming van de betrokkene. Een VOG via Justis is de aangewezen route." }
+        ]
+      },
+      {
+        id: "bsn", title: "BSN & wettelijke identificatienummers", short: "Het BSN mag alleen worden verwerkt als de wet dit expliciet toestaat.",
+        badge: "Artikel 87 / UAVG Art. 46",
+        intro: "Het Burgerservicenummer (BSN) is een uniek identificatienummer dat het risico op koppeling van gegevensbestanden vergroot. De Nederlandse wet staat verwerking alleen toe als een wettelijk voorschrift dit vereist of toestaat.",
+        sections: [
+          { title: "Wanneer toegestaan?", body: "Overheidsorganen in de uitvoering van hun taak. Private partijen alleen op basis van expliciete wettelijke grondslag, zoals werkgevers (belasting/sociale zekerheid), zorgverleners (declaraties), notarissen en advocaten. Kopiëren van een identiteitsbewijs met BSN is in de meeste gevallen niet toegestaan." },
+          { title: "Risico van onterecht gebruik", body: "Het BSN wordt misbruikt bij identiteitsfraude. Verwerking zonder grondslag is een overtreding van de UAVG en kan leiden tot een boete van de AP. Verberg het BSN altijd als u een kopie van een identiteitsbewijs toch moet bewaren (bijv. voor huurcontract)." },
+          { title: "Praktische regel", body: "Vraag uzelf altijd af: welke wet schrijft voor dat wij het BSN nodig hebben? Is er geen concreet wetsartikel aan te wijzen, dan mag u het BSN niet verwerken.<br><br>Zoek direct in de Autorisatielijst BSN-gerechtigden (ALB) van RvIG. Alleen organisaties die hierop staan, mogen het burgerservicenummer gebruiken voor hun publieke taken.<br><br><a href='https://www.rvig.nl/autorisatielijst-bsn-gerechtigden' target='_blank' rel='noopener noreferrer' style='color: var(--accent2); text-decoration: underline;'>Autorisatielijst BSN-gerechtigden</a><br><a href='https://stb.bsn-koppelregister.nl/alb/autorisatielijst_bsn.xml.html' target='_blank' rel='noopener noreferrer' style='color: var(--accent2); text-decoration: underline;'>Bekijk de ALB in het koppelregister</a>" }
+        ],
+        tags: ["UAVG Art. 46", "Identiteitsfraude", "Wettelijke grondslag vereist"],
+        warnTags: ["Niet zonder wettelijke basis"],
+        praktijk: [
+          { icon: "💼", label: "Werkgever en BSN", text: "Een werkgever is verplicht het BSN van werknemers te verwerken voor de loonheffing en de aangifte bij de Belastingdienst. Dit is een duidelijke wettelijke grondslag. Het BSN mag niet worden gebruikt voor interne personeelssystemen die niets met belasting te maken hebben." },
+          { icon: "🏠", label: "Verhuurder vraagt kopie paspoort", text: "Een verhuurder vraagt een huurder om een kopie van het paspoort inclusief BSN. Dit is niet toegestaan. De huurder mag het BSN doorstrepen of onleesbaar maken — de verhuurder mag alleen de identiteit vaststellen, niet het BSN bewaren." }
+        ]
+      },
+      {
+        id: "dataclassificatie", title: "Dataclassificatie", short: "Indeling van gegevens naar gevoeligheid als basis voor beveiligingsbeleid.",
+        badge: "Art. 5(1)(f) & 32",
+        intro: "Dataclassificatie is het systematisch indelen van informatie naar gevoeligheid en impact bij ongeoorloofde openbaarmaking. Het is geen AVG-verplichting op zich, maar een essentieel instrument om te voldoen aan de beginselen van integriteit en vertrouwelijkheid.",
+        sections: [
+          { title: "Vier klassieke niveaus", body: "Openbaar: geen schade bij openbaarmaking (persberichten, websitecontent). Intern: uitsluitend voor medewerkers, beperkte schade (interne memo's, roosters). Vertrouwelijk: aanzienlijke schade mogelijk (klantgegevens, HR-dossiers, financiële data). Strikt vertrouwelijk: ernstige schade bij openbaarmaking (medische dossiers, bijzondere categorieën, bedrijfsgeheimen)." },
+          { title: "Koppeling aan beveiligingsmaatregelen", body: "Per classificatieniveau bepaalt u welke technische en organisatorische maatregelen van toepassing zijn: toegangscontrole, versleuteling, bewaartermijnen, logbeheer, en procedures bij datalekken. Hoe hoger de classificatie, hoe strenger de maatregelen." },
+          { title: "Implementatie", body: "Stel een dataclassificatiebeleid op en train medewerkers. Label documenten en systemen. Koppel classificatie aan het verwerkingsregister: elke verwerking krijgt een classificatieniveau. Herzie de classificatie bij wijzigingen in de verwerking of het dreigingslandschap." }
+        ],
+        tags: ["Artikel 32", "Beveiligingsbeleid", "Organisatorische maatregel"],
+        praktijk: [
+          { icon: "🏷️", label: "Classificatie in de praktijk", text: "Een gemeente labelt documenten automatisch op basis van inhoud: een intern nieuwsbericht is 'Intern', een brief met BSN is 'Vertrouwelijk', een medisch advies voor de Wmo is 'Strikt vertrouwelijk'. Medewerkers zien direct welke regels gelden voor opslag en verzending." },
+          { icon: "☁️", label: "Cloudopslag en classificatie", text: "Een bedrijf wil klantdossiers in een publieke cloudomgeving opslaan. Op basis van de classificatie 'Vertrouwelijk' geldt: versleuteling verplicht, toegang alleen via MFA, geen synchronisatie naar privé-apparaten. Voor 'Strikt vertrouwelijk' geldt aanvullend: geen publieke cloud zonder verwerkersovereenkomst en DPIA." }
+        ]
+      }
+    ]
+  },
+  workflows: {
+    title: "Workflows",
+    intro: "Stapsgewijze procesgidsen voor de meest voorkomende AVG-situaties. Volg de stappen om zeker te zijn van een rechtmatige en gedocumenteerde afhandeling.",
+    items: [
+      {
+        id: "datalek", title: "Datalek afhandelen", short: "Van detectie tot melding en registratie bij een inbreuk op persoonsgegevens.",
+        badge: "Artikel 33–34", intro: "Bij een datalek moet u snel en zorgvuldig handelen: beoordeel de ernst, beslis of melding nodig is, en documenteer alles. De 72-uurstermijn voor melding aan de AP begint zodra u redelijkerwijs op de hoogte bent.",
+        sections: [
+          { title: "Stap 1 — Incident detectie", body: "Bepaal eerst: gaat het om een IT-incident of om een daadwerkelijk datalek (inbreuk op persoonsgegevens)? Stel vast welke persoonsgegevens betrokken zijn en hoeveel betrokkenen het treft. Noteer het tijdstip van ontdekking — dit start de 72-uurstermijn." },
+          { title: "Stap 2 — Risicobeoordeling", body: "Beoordeel het type gegevens (bijzondere categorieën zoals BSN of medische data wegen zwaarder). Schat de kans op misbruik en de mogelijke impact voor betrokkenen. Onderscheid: laag risico (geen melding vereist), risico (meld aan AP), hoog risico (informeer ook betrokkenen)." },
+          { title: "Stap 3 — Meldprocedure", body: "Bij meldplicht: dien binnen 72 uur een melding in bij de Autoriteit Persoonsgegevens via het meldloket. Bij hoog risico informeer ook de betrokkenen direct en duidelijk. Registreer altijd het datalek in het interne datalekregister, ook als melding niet vereist is." }
+        ],
+        tags: ["Artikel 33", "Artikel 34", "72 uur", "Datalekregister"],
+        warnTags: ["Termijn: 72 uur na ontdekking"],
+        praktijk: [
+          { icon: "📧", label: "E-mail naar verkeerde ontvanger", text: "Een medewerker stuurt een bestand met 50 klantnamen en e-mailadressen naar de verkeerde persoon. Beoordeel: geen bijzondere gegevens, beperkt risico — registreer intern, melding aan AP waarschijnlijk niet vereist. Documenteer de afweging." },
+          { icon: "💻", label: "Ransomware-aanval", text: "De systemen worden vergrendeld door ransomware; klantdata is mogelijk gelekt. Hoog risico: meld binnen 72 uur aan AP, informeer betrokkenen, schakel IT-forensics in. Documenteer elk beslismoment met tijdstempel." }
+        ]
+      },
+      {
+        id: "dsar", title: "Betrokkene doet verzoek (DSAR)", short: "Van ontvangst van een inzage- of verwijderingsverzoek tot afhandeling binnen de wettelijke termijn.",
+        badge: "Artikel 15–22", intro: "Een Data Subject Access Request (DSAR) is elk verzoek van een betrokkene om gebruik te maken van zijn of haar rechten onder de AVG. U moet het verzoek binnen één maand afhandelen en alle stappen documenteren.",
+        sections: [
+          { title: "Stap 1 — Verzoek ontvangen", body: "Identificeer het type verzoek: inzage (art. 15), rectificatie (art. 16), of verwijdering (art. 17). Noteer de ontvangstdatum — de termijn van één maand start hier. Stuur een ontvangstbevestiging." },
+          { title: "Stap 2 — Verificatie & beoordeling", body: "Controleer de identiteit van de verzoeker om misbruik te voorkomen. Voer een juridische toets uit: zijn er uitzonderingen van toepassing (bijv. wettelijke bewaarplicht, rechten van derden)? Bepaal welke gegevens binnen scope vallen." },
+          { title: "Stap 3 — Afhandeling", body: "Verzamel alle relevante gegevens uit de systemen. Reageer binnen één maand (verlengbaar met twee maanden bij complexiteit). Verstrek de informatie kosteloos in een begrijpelijke vorm. Documenteer het verzoek, de afhandeling en de beslissing." }
+        ],
+        tags: ["Artikel 15–22", "1 maand termijn", "Kosteloos", "Documenteren"],
+        praktijk: [
+          { icon: "🗑️", label: "Verzoek tot verwijdering na opzegging", text: "Een ex-klant verzoekt alle data te verwijderen. Toets: welke data valt onder bewaarplicht (bijv. facturen 7 jaar)? Verwijder wat mag, leg uit wat bewaard wordt en waarom. Bevestig schriftelijk binnen de termijn." },
+          { icon: "📋", label: "Inzageverzoek van medewerker", text: "Een medewerker vraagt een volledig overzicht van zijn personeelsdossier. Verzamel gegevens uit HR-systeem, e-mailarchief en beoordelingstools. Let op: gegevens van collega's in dezelfde documenten mogen niet worden meegestuurd." }
+        ]
+      },
+      {
+        id: "privacy-governance", title: "Privacy governance inrichten", short: "Rollen, beleid, training en monitoring voor een structureel privacybeheer binnen uw organisatie.",
+        badge: "Artikel 24 + 37–39", intro: "Privacy governance zorgt voor een structurele inbedding van gegevensbescherming in uw organisatie. Door de juiste rollen te beleggen, beleid op te stellen, medewerkers te trainen en naleving te monitoren, voldoet u aantoonbaar aan de AVG-verantwoordingsplicht.",
+        sections: [
+          { title: "Rollen & verantwoordelijkheden", body: "Stel een Functionaris voor de Gegevensbescherming (FG/DPO) aan indien verplicht (overheidsinstanties, grootschalige verwerkingen van bijzondere gegevens of stelselmatige monitoring). De FG adviseert, informeert en houdt toezicht — maar is niet zelf verantwoordelijk voor naleving. Wijs daarnaast een privacy officer aan voor dagelijkse coördinatie en beleg verantwoordelijkheid voor verwerkingen bij proceseigenaren per afdeling." },
+          { title: "Privacy beleid", body: "Stel een privacybeleid op dat de uitgangspunten, rollen en processen van uw organisatie beschrijft. Werk een dataclassificatiebeleid uit: welke gegevens zijn openbaar, intern, vertrouwelijk of strikt vertrouwelijk? Koppel hieraan een beveiligingsbeleid met technische en organisatorische maatregelen passend bij het risiconiveau van elke gegevenscategorie." },
+          { title: "Awareness & training", body: "Zorg dat alle medewerkers die persoonsgegevens verwerken begrijpen wat de AVG van hen vraagt. Bied bij indiensttreding een basistraining privacy aan en herhaal dit jaarlijks. Stel heldere richtlijnen op voor veelvoorkomende situaties: omgaan met verzoeken van betrokkenen, melden van datalekken, gebruik van persoonsgegevens in e-mail en opslag." },
+          { title: "Monitoring & review", body: "Voer periodieke interne audits uit om te toetsen of beleid en processen worden nageleefd. Rapporteer bevindingen en aanbevelingen aan het management via compliance rapportages. Plan een jaarlijkse management review om het privacybeleid, de risicoanalyse en het verwerkingsregister te actualiseren op basis van nieuwe verwerkingen, wetgeving of incidenten." }
+        ],
+        tags: ["Artikel 24", "Artikel 37", "Artikel 38", "Artikel 39", "Verantwoordingsplicht", "FG/DPO"],
+        warnTags: ["FG verplicht in specifieke gevallen"],
+        praktijk: [
+          { icon: "🏛️", label: "Gemeente richt privacy governance in", text: "Een gemeente is verplicht een FG aan te stellen. De FG adviseert over DPIA's en verwerkingsregister, terwijl proceseigenaren per domein (Sociaal, P&O, ICT) verantwoordelijk zijn voor hun eigen verwerkingen. Jaarlijks vindt een management review plaats met het college." },
+          { icon: "🏢", label: "MKB zonder verplichte FG", text: "Een middelgroot bedrijf zonder verplichting tot FG benoemt een privacy officer (halftime). Deze stelt het privacybeleid op, begeleidt DSAR-afhandeling, verzorgt de jaarlijkse training en rapporteert elk kwartaal aan de directie over compliance-status en openstaande acties." }
+        ]
+      },
+      {
+        id: "nieuwe-verwerking", title: "Nieuwe verwerking starten", short: "Van idee tot rechtmatige en gedocumenteerde verwerking van persoonsgegevens.",
+        badge: "Artikel 5–6 + 35", intro: "Voordat u een nieuwe verwerking start, moet u het doel en de juridische grondslag vaststellen, beoordelen of een DPIA nodig is, en privacy-by-design principes toepassen. Registreer de verwerking in het verwerkingsregister.",
+        sections: [
+          { title: "Stap 1 — Doel & scope bepalen", body: "Definieer het verwerkingsdoel concreet en specifiek. Bepaal welke categorieën persoonsgegevens nodig zijn. Identificeer de betrokkenen. Toets aan doelbinding: mag dit doel worden nagestreefd met deze gegevens?" },
+          { title: "Stap 2 — Juridische basis bepalen", body: "Kies de passende grondslag: toestemming (vrij, specifiek, geïnformeerd, ondubbelzinnig), uitvoering van een contract, wettelijke verplichting, vitaal belang, publieke taak, of gerechtvaardigd belang. Bij gerechtvaardigd belang: voer een belangenafweging uit." },
+          { title: "Stap 3 — Privacy ontwerp", body: "Pas dataminimalisatie toe: verwerk niet meer dan nodig. Beoordeel of een DPIA verplicht is (hoog-risicoverwerking, bijzondere gegevens, grootschalige monitoring). Werk het verwerkingsregister bij vóór de livegang." }
+        ],
+        tags: ["Artikel 5", "Artikel 6", "Artikel 35", "Verwerkingsregister", "Privacy by Design"],
+        praktijk: [
+          { icon: "📊", label: "Nieuwe marketingcampagne met profilering", text: "De marketingafdeling wil klanten profileren op basis van koopgedrag. Grondslag: gerechtvaardigd belang — voer belangenafweging uit. Grootschalige profilering: DPIA verplicht. Documenteer en registreer vóór start campagne." },
+          { icon: "🏥", label: "Medisch onderzoeksproject", text: "Een instelling start een onderzoek met patiëntdata. Bijzondere categorieën gegevens: DPIA verplicht. Grondslag: wetenschappelijk onderzoek (art. 9 lid 2 sub j). Anonimiseer of pseudonimiseer zo vroeg mogelijk in het proces." }
+        ]
+      },
+      {
+        id: "verwerkingsregister-workflow", title: "Verwerkingsregister opstellen en bijhouden", short: "Van inventarisatie van verwerkingen tot een actueel en auditklaar register.",
+        badge: "Artikel 30", intro: "Het verwerkingsregister is het fundament van uw AVG-compliance. Het geeft een volledig overzicht van alle verwerkingen van persoonsgegevens binnen uw organisatie en is verplicht voor organisaties met ≥250 medewerkers of bij risicovolle verwerkingen.",
+        sections: [
+          { title: "Stap 1 — Inventariseer alle verwerkingen", body: "Breng per afdeling in kaart welke persoonsgegevens worden verwerkt. Stel per verwerking vast: wat zijn het doel, de categorieën betrokkenen (klanten, medewerkers, leveranciers), en welke gegevens worden precies verwerkt? Betrek proceseigenaren — zij kennen hun eigen data het beste. Vergeet ook systemen van derden niet: cloud-applicaties, HR-tools, CRM, e-mailmarketing." },
+          { title: "Stap 2 — Vul het register in per verwerking", body: "Documenteer voor elke verwerking: naam en contactgegevens van de verwerkingsverantwoordelijke en eventuele FG, het doel van de verwerking, de juridische grondslag (art. 6), categorieën betrokkenen en gegevens, ontvangers (intern én extern), eventuele doorgifte buiten de EER met bijbehorend mechanisme, bewaartermijnen, en een beschrijving van de technische en organisatorische beveiligingsmaatregelen." },
+          { title: "Stap 3 — Beheer en actueel houden", body: "Het register is geen eenmalige exercitie. Koppel het aan uw change-proces: elke nieuwe applicatie, nieuw doel of nieuwe leverancier triggert een update. Plan een jaarlijkse audit om verouderde of gestopte verwerkingen te verwijderen. Zorg dat het register opvraagbaar is door de AP — sla het op in een centraal, toegankelijk format (bijv. Excel, OneTrust of een privacytool)." }
+        ],
+        tags: ["Artikel 30", "Verplicht ≥250 medewerkers", "Altijd verplicht bij bijzondere gegevens", "Actueel houden"],
+        warnTags: ["AP kan register opvragen bij audit"],
+        praktijk: [
+          { icon: "🏢", label: "MKB start met verwerkingsregister", text: "Een accountantskantoor met 40 medewerkers verwerkt financiële gegevens van klanten en salarisdata van personeel. Hoewel ze onder de 250-grens zitten, zijn dit risicovolle verwerkingen — het register is dus verplicht. Ze beginnen met een eenvoudig Excel-template per afdeling." },
+          { icon: "🔄", label: "Register na fusie actualiseren", text: "Twee organisaties fuseren. De privacy officer inventariseert alle verwerkingen van beide entiteiten, vergelijkt grondslagen en bewaartermijnen, en stelt één geconsolideerd register op vóór de juridische fusiedatum." }
+        ]
+      },
+      {
+        id: "dpia-workflow", title: "DPIA uitvoeren", short: "Van drempeltoets tot goedgekeurde risicoanalyse vóór de start van een hoog-risicoverwerking.",
+        badge: "Artikel 35", intro: "Een Data Protection Impact Assessment (DPIA) is een verplichte risicoanalyse bij verwerkingen die waarschijnlijk een hoog risico inhouden voor betrokkenen. U moet de DPIA afronden vóórdat u de verwerking start.",
+        sections: [
+          { title: "Stap 1 — Drempeltoets: is een DPIA verplicht?", body: "Een DPIA is in elk geval verplicht bij: (1) stelselmatige en uitgebreide profilering met rechtsgevolgen, (2) grootschalige verwerking van bijzondere categorieën (gezondheid, biometrie, religie), of (3) stelselmatige monitoring van openbaar toegankelijke ruimten. Daarnaast publiceert de AP een lijst van verwerkingen waarvoor een DPIA altijd verplicht is. Twijfelt u? Voer de DPIA alsnog uit — het documenteert uw zorgvuldigheid." },
+          { title: "Stap 2 — Beschrijf de verwerking", body: "Documenteer de aard, de reikwijdte, de context en de doeleinden van de verwerking. Beschrijf welke persoonsgegevens worden verwerkt, wie er toegang toe heeft, hoe lang ze worden bewaard, en welke systemen en leveranciers betrokken zijn. Toets de noodzakelijkheid en evenredigheid: is het verwerkingsdoel legitiem en zijn de gegevens echt nodig?" },
+          { title: "Stap 3 — Beoordeel de risico's", body: "Identificeer risico's voor betrokkenen: ongeoorloofde toegang, onjuiste besluitvorming, discriminatie, identiteitsdiefstal. Beoordeel per risico de kans én de ernst. Bepaal welke maatregelen het risico mitigeren (encryptie, toegangscontrole, pseudonimisering, recht op menselijke tussenkomst)." },
+          { title: "Stap 4 — Raadpleeg de FG en eventueel de AP", body: "Laat de FG de DPIA reviewen vóór de beslissing om door te gaan. Als de risico's ondanks maatregelen hoog blijven, bent u verplicht de AP vooraf te raadplegen (art. 36). De AP heeft dan 8 weken om te reageren (verlengbaar tot 14 weken). Documenteer de uitkomst en sla de DPIA op — de AP kan hierom vragen." }
+        ],
+        tags: ["Artikel 35", "Artikel 36", "Vóór start verwerking", "FG betrekken"],
+        warnTags: ["Hoog restrisico → AP raadplegen verplicht"],
+        praktijk: [
+          { icon: "📍", label: "Gezichtsherkenning op de werkvloer", text: "Een logistiek bedrijf wil aanwezigheid registreren via gezichtsherkenning. Biometrische verwerking op grote schaal: DPIA verplicht. Uit de DPIA blijkt dat een minder ingrijpende methode (badgescan) hetzelfde doel dient — de verwerking wordt niet goedgekeurd." },
+          { icon: "🤖", label: "AI-model voor selectie van sollicitanten", text: "Een HR-afdeling wil een algoritme inzetten om cv's automatisch te rangschikken. Systematische profilering met rechtsgevolgen: DPIA verplicht. De DPIA concludeert dat menselijke review van elke beslissing verplicht is en dat het model jaarlijks op bias getoetst moet worden." }
+        ]
+      },
+      {
+        id: "privacyverklaring-workflow", title: "Privacyverklaring opstellen", short: "Van wettelijke informatieplicht tot begrijpelijke en volledige privacyverklaring.",
+        badge: "Artikel 13–14", intro: "U bent verplicht betrokkenen te informeren over hoe u hun persoonsgegevens verwerkt. De privacyverklaring is het centrale document waarmee u aan deze informatieplicht voldoet. Hij moet begrijpelijk, volledig en actueel zijn.",
+        sections: [
+          { title: "Stap 1 — Bepaal de scope", body: "Stel vast voor welke verwerkingen en doelgroepen u informatie moet verstrekken. Onderscheid: gegevens die u direct bij de betrokkene verzamelt (art. 13) en gegevens die u van derden ontvangt (art. 14). Gebruik uw verwerkingsregister als basis — elke verwerking daarin vereist transparantie." },
+          { title: "Stap 2 — Verwerk alle verplichte elementen", body: "De verklaring moet minimaal bevatten: identiteit en contactgegevens van de verwerkingsverantwoordelijke en FG, de doelen en juridische grondslagen van elke verwerking, categorieën ontvangers en eventuele doorgifte buiten de EER, bewaartermijnen per gegevenscategorie, de rechten van betrokkenen (inzage, rectificatie, verwijdering, bezwaar, overdraagbaarheid), het recht om toestemming in te trekken, en het recht een klacht in te dienen bij de AP." },
+          { title: "Stap 3 — Schrijf begrijpelijk en publiceer correct", body: "Gebruik heldere, niet-juridische taal. Vermijd vage formuleringen zoals 'wij kunnen uw gegevens delen met partners'. Wees specifiek. Publiceer de verklaring op een logisch vindbare plek (footer van de website, bij het aanmeldformulier, in de app). Voeg een versiedatum toe en actualiseer de verklaring bij elke wijziging in uw verwerkingen." }
+        ],
+        tags: ["Artikel 13", "Artikel 14", "Transparantie", "Publiceren op website"],
+        warnTags: ["Vage teksten zijn een handhavingsrisico"],
+        praktijk: [
+          { icon: "🛒", label: "Webshop actualiseert privacyverklaring", text: "Een webshop introduceert een nieuw loyaltyprogramma met profilering. De bestaande privacyverklaring vermeldde dit doel niet. Vóór de lancering wordt de verklaring uitgebreid met het nieuwe doel, de grondslag (gerechtvaardigd belang), en het recht van bezwaar. Klanten worden via e-mail geïnformeerd over de wijziging." },
+          { icon: "🏥", label: "Zorgpraktijk met patiëntinformatie", text: "Een huisartsenpraktijk stelt een privacyverklaring op voor patiënten. Naast de standaardelementen vermeldt de verklaring ook het medisch beroepsgeheim, de wettelijke bewaartermijn van 20 jaar voor medische dossiers, en de procedure voor inzageverzoeken. De verklaring hangt in de wachtkamer en staat op de website." }
+        ]
+      },
+      {
+        id: "bijzondere-categorieen-workflow", title: "Bijzondere categorieën verwerken", short: "Van vaststelling van de uitzondering tot rechtmatige verwerking van gevoelige gegevens.",
+        badge: "Artikel 9", intro: "Bijzondere categorieën persoonsgegevens genieten extra bescherming onder de AVG. Verwerking is in principe verboden, tenzij een specifieke uitzondering van toepassing is. De lat ligt hoger: strengere grondslagen, zwaardere beveiligingseisen en vaak een verplichte DPIA.",
+        sections: [
+          { title: "Stap 1 — Stel vast of u bijzondere gegevens verwerkt", body: "Bijzondere categorieën zijn: gezondheidsgegevens, genetische gegevens, biometrische gegevens (voor identificatie), ras of etnische afkomst, politieke opvattingen, religieuze of levensbeschouwelijke overtuigingen, vakbondslidmaatschap, seksueel gedrag of seksuele gerichtheid. Let op indirecte verwerking: een pasfoto kan biometrische data bevatten; een verzuimregistratie kan gezondheidsdata impliceren." },
+          { title: "Stap 2 — Bepaal de toepasselijke uitzondering", body: "De meest voorkomende uitzonderingen zijn: (a) uitdrukkelijke toestemming van de betrokkene, (b) verwerking noodzakelijk voor arbeidsrechtelijke verplichtingen (bijv. verzuimregistratie), (c) bescherming van vitale belangen, (d) medische diagnose of behandeling door een zorgprofessional, (e) wetenschappelijk of statistisch onderzoek met passende waarborgen, of (f) archivering in het algemeen belang. Documenteer welke uitzondering van toepassing is en waarom." },
+          { title: "Stap 3 — Pas aanvullende maatregelen toe", body: "Beperk de toegang strikt tot wie de gegevens nodig heeft (need-to-know). Versleutel de gegevens in opslag en tijdens verzending. Stel een geheimhoudingsplicht in voor medewerkers die de gegevens verwerken. Beoordeel of een DPIA verplicht is — bij grootschalige verwerking van bijzondere categorieën is dat bijna altijd het geval. Leg bewaartermijnen strikt vast en voer automatische verwijdering in." }
+        ],
+        tags: ["Artikel 9", "Verhoogde bescherming", "DPIA vaak verplicht", "Toegangsbeperking"],
+        warnTags: ["Hogere boetes bij schending"],
+        praktijk: [
+          { icon: "🏥", label: "Verzuimregistratie door werkgever", text: "Een werkgever registreert ziekmeldingen en re-integratietrajecten van medewerkers. Dit zijn gezondheidsgegevens (bijzondere categorie). De uitzondering is de arbeidsrechtelijke verplichting (Wet verbetering poortwachter). Alleen HR en de bedrijfsarts hebben toegang; leidinggevenden zien alleen of iemand ziek is, niet wat de reden is." },
+          { icon: "🔬", label: "Zorginstelling met genetische data", text: "Een ziekenhuis verwerkt genetische gegevens van patiënten voor erfelijkheidsonderzoek. DPIA verplicht. Uitzondering: medische behandeling door een zorgprofessional. Gegevens worden pseudonimiseerd opgeslagen, toegang is beperkt tot betrokken specialisten, bewaartermijn is vastgelegd in het patiëntendossierprotocol." }
+        ]
+      },
+      {
+        id: "ai-avg-workflow", title: "AI-toepassing invoeren", short: "Van idee tot AVG-compliant gebruik van AI binnen uw organisatie.",
+        badge: "Artikel 5–6 + 22 + 35", intro: "Het inzetten van AI die persoonsgegevens verwerkt raakt meerdere AVG-verplichtingen tegelijk: grondslag, DPIA, geautomatiseerde besluitvorming, transparantie en verwerkersovereenkomst. Dit is het enige scenario waarbij u al deze verplichtingen in samenhang moet doorlopen vóór de livegang.",
+        sections: [
+          { title: "Stap 1 — Stel vast wat de AI doet met persoonsgegevens", body: "Bepaal of de AI persoonsgegevens verwerkt als input (bijv. klantdata, medische dossiers, HR-gegevens), als trainingsdata, of als basis voor beslissingen over personen. Stel ook vast of medewerkers persoonsgegevens invoeren in externe AI-tools zoals ChatGPT, Copilot of Gemini — dit is een verwerkingsvorm die veel organisaties over het hoofd zien. Categoriseer het type AI-gebruik: ondersteunend (AI adviseert, mens beslist), gedeeltelijk geautomatiseerd, of volledig geautomatiseerd met rechtsgevolgen." },
+          { title: "Stap 2 — Bepaal de grondslag en toets art. 22", body: "Kies de passende juridische grondslag voor de verwerking van persoonsgegevens door of via de AI (art. 6). Bij bijzondere categorieën als input of trainingsdata gelden de strengere eisen van art. 9. Toets art. 22: neemt de AI beslissingen die rechtsgevolgen hebben of de betrokkene anderszins aanzienlijk treffen (bijv. kredietwaardigheid, sollicitatiebeoordeling, risicoscore)? Dan heeft de betrokkene recht op menselijke tussenkomst, op het uiten van zijn standpunt, en op uitleg van de beslissing. Documenteer hoe u hieraan voldoet." },
+          { title: "Stap 3 — Voer een DPIA uit", body: "Bij AI is een DPIA vrijwel altijd verplicht: AI-toepassingen omvatten doorgaans systematische profilering, grootschalige verwerking, of geautomatiseerde besluitvorming. Voer de DPIA uit vóór de livegang. Beschrijf het model, de trainingsdata, de beslislogica en de risico's voor betrokkenen (discriminatie, uitsluiting, onjuiste beslissingen). Bepaal mitigerende maatregelen: regelmatige bias-audits, menselijke review, beperkte bewaartermijnen voor input- en outputdata." },
+          { title: "Stap 4 — Sluit een verwerkersovereenkomst met de AI-leverancier", body: "De AI-leverancier (OpenAI, Microsoft, Google, etc.) is in de meeste gevallen een verwerker: zij verwerken persoonsgegevens op uw instructie. Controleer of de leverancier een VOK aanbiedt en toets deze op de verplichte elementen. Let specifiek op: worden prompts en outputs gebruikt voor het trainen van het model? (Als ja: dan gebruikt de leverancier uw data voor eigen doeleinden — dan is er mogelijk geen sprake van een verwerker maar een gezamenlijke verwerkingsverantwoordelijkheid.) Controleer ook de datalocatie: worden gegevens buiten de EER verwerkt? Dan zijn aanvullende doorgiftewaarborgen vereist (SCC, adequaatheidsbesluit)." },
+          { title: "Stap 5 — Informeer betrokkenen en stel interne regels in", body: "Pas de privacyverklaring aan: informeer betrokkenen dat geautomatiseerde besluitvorming plaatsvindt, wat de logica is, en wat de gevolgen zijn. Stel een intern AI-gebruiksbeleid op: welke persoonsgegevens mogen medewerkers invoeren in externe AI-tools, en welke niet? Bijzondere categorieën, BSN-nummers en klantdata zijn in principe verboden als prompt-input tenzij de VOK dit uitdrukkelijk toestaat en de grondslag dit dekt. Train medewerkers op de regels vóór de uitrol." }
+        ],
+        tags: ["Artikel 5", "Artikel 6", "Artikel 9", "Artikel 22", "Artikel 35", "Verwerkersovereenkomst", "DPIA verplicht"],
+        warnTags: ["Art. 22: recht op menselijke tussenkomst", "Promptdata kan een datalek zijn"],
+        praktijk: [
+          { icon: "🤖", label: "AI-tool voor CV-selectie bij HR", text: "Een organisatie wil een AI-algoritme inzetten om sollicitaties automatisch te rangschikken. Art. 22 van toepassing: rechtsgevolgen voor betrokkenen. DPIA verplicht. Maatregelen: HR-medewerker beoordeelt elke aanbeveling, sollicitant kan om uitleg vragen en menselijke herziening verzoeken. Trainingsdata getoetst op bias. VOK met leverancier afgesloten; trainingsdata door leverancier is contractueel uitgesloten." },
+          { icon: "💬", label: "Medewerkers gebruiken ChatGPT met klantdata", text: "Een klantenserviceteam plakt klantklachten inclusief naam en ordernummer in ChatGPT voor een samenvatting. Probleem: zonder enterprise-overeenkomst gebruikt OpenAI de input mogelijk voor modeltraining — dit is een ongeoorloofde doorgifte. Oplossing: overstap naar ChatGPT Enterprise (VOK beschikbaar, geen training op data), intern beleid dat bijzondere gegevens en BSN's nooit als prompt-input mogen worden gebruikt, en jaarlijkse bewustwordingstraining." }
+        ]
+      },
+      {
+        id: "verwerkersovereenkomst-workflow", title: "Verwerkersovereenkomst afsluiten", short: "Van selectie van een verwerker tot een getekende en werkende verwerkersovereenkomst.",
+        badge: "Artikel 28", intro: "Elke keer dat u persoonsgegevens laat verwerken door een derde partij die namens u handelt, bent u verplicht een verwerkersovereenkomst (VOK) af te sluiten. Dit geldt ook voor standaard SaaS-tools, clouddiensten en externe IT-leveranciers.",
+        sections: [
+          { title: "Stap 1 — Stel vast of er sprake is van een verwerker", body: "Een verwerker verwerkt persoonsgegevens uitsluitend op uw instructie en voor uw doeleinden. Voorbeelden: cloudhostingprovider, salarisadministratiekantoor, e-mailmarketingplatform, callcenter. Geen verwerker: een partij die gegevens voor eigen doeleinden gebruikt (dan is er een gezamenlijke verwerkingsverantwoordelijkheid of een zelfstandige verantwoordelijkheid). Bij twijfel: een verwerker heeft geen eigen zeggenschap over het doel van de verwerking." },
+          { title: "Stap 2 — Controleer en onderhandel de VOK", body: "Controleer of de leverancier een standaard VOK aanbiedt. Toets deze op de verplichte elementen (art. 28 lid 3): verwerkingsdoel en -duur, instructiebevoegdheid, geheimhouding, beveiligingsmaatregelen, subverwerkers (lijst én toestemmingsprocedure), auditrecht, teruggave of verwijdering van gegevens na afloop. Let op subverwerkers: als uw verwerker gebruik maakt van AWS, Google of andere subverwerkers, moet ook dát in de VOK staan." },
+          { title: "Stap 3 — Activeer en monitor de VOK", body: "Teken de VOK vóór de verwerker begint met verwerken — niet erna. Sla de ondertekende VOK op in uw contractregistratie en koppel deze aan de verwerking in uw verwerkingsregister. Monitor de naleving: voer periodiek een leveranciersbeoordeling uit. Bij een datalek door de verwerker bent u als verwerkingsverantwoordelijke verantwoordelijk voor de melding aan de AP — niet de verwerker." }
+        ],
+        tags: ["Artikel 28", "Vóór start verwerking", "Subverwerkers vastleggen", "Auditrecht"],
+        warnTags: ["Geen VOK = directe AVG-overtreding"],
+        praktijk: [
+          { icon: "☁️", label: "Nieuwe SaaS-tool voor HR", text: "Een organisatie implementeert een cloudgebaseerde HR-tool. Vóór de go-live: VOK aangevraagd bij de leverancier, getoetst op verplichte elementen, subverwerkers (AWS, Okta) gecontroleerd op EER-locatie of adequaatheidsbesluit, en getekend door beide partijen. De VOK wordt opgeslagen in het contractsysteem en gekoppeld aan de verwerking 'personeelsbeheer' in het verwerkingsregister." },
+          { icon: "📞", label: "Extern callcenter met klantdata", text: "Een organisatie schakelt een extern callcenter in. Het callcenter verwerkt naam, telefoonnummer en orderhistorie van klanten. De VOK omschrijft nauwkeurig welke gegevens mogen worden ingezien, dat het callcenter geen eigen analyses mag uitvoeren, en dat alle data na contracteinde wordt verwijderd. Een jaarlijkse audit is contractueel vastgelegd." }
+        ]
+      },
+      {
+        id: "eer-doorgifte-workflow", title: "Doorgifte buiten de EER regelen", short: "Van constatering van een internationale doorgifte tot een gedekte en gedocumenteerde gegevensoverdracht.",
+        badge: "Artikel 44–49", intro: "Elke overdracht van persoonsgegevens naar een land buiten de Europese Economische Ruimte (EER) is een 'doorgifte' in de zin van de AVG en vereist een specifiek doorgiftemechanisme. Dit geldt ook wanneer een cloudleverancier of subverwerker servers buiten de EER gebruikt — zelfs als u dat niet bewust heeft gekozen.",
+        sections: [
+          { title: "Stap 1 — Stel vast of er sprake is van een doorgifte buiten de EER", body: "Identificeer alle situaties waarin persoonsgegevens de EER verlaten: directe overdracht aan een buitenlandse partij, gebruik van een cloudprovider met servers buiten de EER (bijv. AWS us-east, Azure US), remote access door medewerkers of leveranciers buiten de EER, en SaaS-tools waarbij data op niet-EER-servers wordt verwerkt. Controleer de datalocatie-instellingen van uw huidige leveranciers — dit wordt vaak over het hoofd gezien. Documenteer elke geconstateerde doorgifte in uw verwerkingsregister (art. 30 vereist dit expliciet)." },
+          { title: "Stap 2 — Controleer of een adequaatheidsbesluit van toepassing is", body: "De Europese Commissie heeft voor een beperkt aantal landen vastgesteld dat zij een passend beschermingsniveau bieden (adequaatheidsbesluit). Voor deze landen is geen aanvullend mechanisme nodig. Landen met een adequaatheidsbesluit zijn onder meer: Zwitserland, Noorwegen, IJsland, Liechtenstein (EER-landen zelf), het VK (post-Brexit, tijdelijk besluit), Japan, Canada (gedeeltelijk), Nieuw-Zeeland, Israël en — via het EU-US Data Privacy Framework — de Verenigde Staten (alleen voor gecertificeerde organisaties). Let op: het VK-besluit en het EU-US DPF zijn juridisch betwistbaar en kunnen worden herzien. Verifieer altijd de actuele status via de website van de Europese Commissie." },
+          { title: "Stap 3 — Kies het juiste doorgiftemechanisme", body: "Is er geen adequaatheidsbesluit? Dan zijn de belangrijkste alternatieven: (1) Standaard Contractbepalingen (SCC's) — door de Europese Commissie vastgestelde modelcontracten die u sluit met de ontvangende partij. Dit is het meest gebruikte mechanisme. Gebruik uitsluitend de herziene SCC's van juni 2021. (2) Bindende bedrijfsvoorschriften (BCR's) — voor multinationals die gegevens uitwisselen binnen dezelfde concernstructuur; vereist goedkeuring door een nationale toezichthouder. (3) Uitzonderingen op grond van art. 49 AVG — slechts van toepassing in specifieke situaties: uitdrukkelijke toestemming van de betrokkene, uitvoering van een contract met de betrokkene, of zwaarwegende redenen van algemeen belang. Art. 49-uitzonderingen zijn uitdrukkelijk bedoeld als noodventiel, niet als structureel mechanisme." },
+          { title: "Stap 4 — Voer een Transfer Impact Assessment (TIA) uit", body: "Bij gebruik van SCC's bent u verplicht te beoordelen of de SCC's in de praktijk ook effectief zijn — dit heet een Transfer Impact Assessment (TIA), verplicht gesteld door het Schrems II-arrest van het HvJ-EU. De TIA onderzoekt: Welke wetgeving geldt in het ontvangende land (bijv. de Amerikaanse FISA 702 of CLOUD Act)? Kunnen autoriteiten in dat land toegang krijgen tot de data, ook buiten de SCC-bepalingen om? Welke aanvullende technische maatregelen zijn nodig (end-to-end encryptie, pseudonimisering, toegangsbeperking)? Documenteer de TIA en sla hem op bij de bijbehorende SCC's." },
+          { title: "Stap 5 — Documenteer en onderhoud", body: "Leg het gekozen doorgiftemechanisme vast in het verwerkingsregister. Bewaar ondertekende SCC's als juridisch document. Stel een reminder in voor de jaarlijkse hertoetsing: adequatheidsbesluiten en SCC-status kunnen wijzigen. Informeer betrokkenen in de privacyverklaring over internationale doorgiftes en het toegepaste mechanisme (art. 13/14 AVG). Bij gebruik van subverwerkers buiten de EER: zorg dat de VOK met uw directe verwerker ook de doorgifte door subverwerkers dekt." }
+        ],
+        tags: ["Artikel 44", "Artikel 45", "Artikel 46", "Artikel 49", "SCC's", "Adequaatheidsbesluit", "Transfer Impact Assessment"],
+        warnTags: ["Schrems II: SCC's alleen niet voldoende", "EU-US DPF juridisch betwistbaar", "Subverwerkers buiten EER ook doorgifte"],
+        praktijk: [
+          { icon: "🇺🇸", label: "SaaS-tool met servers in de VS", text: "Een organisatie gebruikt Salesforce voor CRM. Salesforce verwerkt data op Amerikaanse servers. Mechanisme: Salesforce is EU-US DPF gecertificeerd én biedt SCC's aan. De organisatie sluit SCC's af, voert een TIA uit (conclusie: encryptie en toegangsbeperking voldoende als aanvullende maatregel), en documenteert dit in het verwerkingsregister en de privacyverklaring." },
+          { icon: "🌏", label: "Klantdata doorgegeven aan Indiaas support-team", text: "Een bedrijf schakelt een Indiaas supportkantoor in met toegang tot klanttickets inclusief naam en e-mail. India heeft geen adequaatheidsbesluit. Oplossing: SCC's module 1 (verantwoordelijke naar verantwoordelijke) worden gesloten, TIA uitgevoerd, aanvullende maatregel: supportmedewerkers zien alleen gepseudonimiseerde klant-ID's tenzij escalatie nodig is." }
+        ]
+      }
+    ]
+  }
+};
+
+// CHECKS DATA — separate because it uses a different level-2 rendering
+const CHECKS_DATA = {
+  title: "Praktische checks",
+  intro: "Gebruik deze vragenlijsten om snel en zorgvuldig een besluit te nemen bij veelvoorkomende AVG-situaties. Beantwoord elke vraag eerlijk — de vragen leiden u naar het juiste oordeel.",
+  items: [
+    {
+      id: "privacy-check",
+      title: "Privacy Check",
+      short: "Nieuwe verwerking beoordelen.",
+      badge: "Nieuwe verwerking",
+      intro: "Voordat u start met een nieuwe verwerking van persoonsgegevens, doorloopt u deze check. Doel: vaststellen of de verwerking rechtmatig, proportioneel en gedocumenteerd kan worden ingericht.",
+      sections: [
+        {
+          title: "Doelbinding & noodzaak",
+          questions: [
+            { q: "Wat is het concrete doel van deze verwerking?", hint: "Formuleer het doel specifiek — 'klantbeheer' is te vaag, 'verzenden van orderbevestigingen' is voldoende specifiek." },
+            { q: "Is dit doel verenigbaar met het doel waarvoor de gegevens oorspronkelijk zijn verzameld?", hint: "Hergebruik van data voor een nieuw doel vereist een verenigbaarheidstoets (art. 6 lid 4) of een nieuwe grondslag." },
+            { q: "Zijn de gegevens strikt noodzakelijk voor het doel — kunt u met minder gegevens toe?", hint: "Dataminimalisatie is een harde verplichting. Vraag uzelf: welke gegevens zijn absoluut onmisbaar?" },
+            { q: "Hoe lang zijn de gegevens nodig en wat is de bewaartermijn?", hint: "Leg de bewaartermijn nu vast. Na afloop moeten gegevens worden gewist of anonimiseerd." }
+          ]
+        },
+        {
+          title: "Grondslag",
+          questions: [
+            { q: "Op welke van de zes grondslagen (art. 6) berust de verwerking?", hint: "Opties: toestemming, contract, wettelijke verplichting, vitale belangen, algemeen belang, gerechtvaardigd belang." },
+            { q: "Als u gerechtvaardigd belang kiest: hebt u een LIA (Legitimate Interest Assessment) uitgevoerd?", hint: "Weeg uw belang af tegen de rechten en verwachtingen van de betrokkene. Documenteer de afweging." },
+            { q: "Betreft de verwerking bijzondere categorieën (art. 9) of strafrechtelijke gegevens (art. 10)?", hint: "Bijv. gezondheidsdata, biometrie, etnische afkomst, politieke opvattingen, seksuele gerichtheid. Zo ja: aanvullende grondslag verplicht." }
+          ]
+        },
+        {
+          title: "Rechten & transparantie",
+          questions: [
+            { q: "Zijn betrokkenen geïnformeerd over deze verwerking via de privacyverklaring?", hint: "Art. 13/14 vereist actieve informatieplicht. Controleer of de verklaring actueel en volledig is." },
+            { q: "Is er een procedure voor het afhandelen van inzage-, rectificatie- en verwijderingsverzoeken?", hint: "Elke verwerking moet ondersteund worden door een werkend DSAR-proces." },
+            { q: "Worden de rechten van betrokkenen niet onnodig beperkt door de inrichting van de verwerking?", hint: "Bijv. zijn gegevens technisch verwijderbaar als iemand dat verzoekt?" }
+          ]
+        },
+        {
+          title: "Beveiliging & documentatie",
+          questions: [
+            { q: "Zijn passende technische en organisatorische beveiligingsmaatregelen genomen?", hint: "Denk aan encryptie, toegangscontrole, logging, pseudonimisering. Proportioneel aan het risico." },
+            { q: "Is de verwerking opgenomen in het verwerkingsregister (art. 30)?", hint: "Verplicht voor alle verwerkingen — ook als u minder dan 250 medewerkers heeft, bij niet-incidentele verwerkingen." },
+            { q: "Is een Data Protection Impact Assessment (DPIA) vereist of wenselijk?", hint: "Verplicht bij hoog risico: grootschalige verwerking van bijzondere gegevens, stelselmatige monitoring, of geautomatiseerde besluitvorming met rechtsgevolgen." },
+            { q: "Zijn er verwerkers betrokken en is er een verwerkersovereenkomst (art. 28)?", hint: "Elke derde die namens u persoonsgegevens verwerkt is een verwerker. VOK is verplicht vóór start." }
+          ]
+        }
+      ],
+      verdict: "Als u alle vragen bevestigend kunt beantwoorden en de antwoorden heeft gedocumenteerd, is de verwerking gereed om te starten. Ontbreekt een grondslag, bewaartermijn of VOK? Stel de verwerking uit totdat dit geregeld is."
+    },
+    {
+      id: "datalek-check",
+      title: "Datalek Check",
+      short: "Datalek of incident beoordelen.",
+      badge: "Incident & melding",
+      intro: "Gebruik deze check zodra een mogelijk datalek of beveiligingsincident is gemeld. Doel: snel vaststellen of er sprake is van een inbreuk in de zin van de AVG, hoe ernstig die is, en welke acties verplicht zijn.",
+      sections: [
+        {
+          title: "Is er sprake van een datalek?",
+          questions: [
+            { q: "Zijn persoonsgegevens betrokken bij het incident?", hint: "Alleen bij persoonsgegevens is er sprake van een 'inbreuk in verband met persoonsgegevens' (art. 4 lid 12). Gaat het puur om bedrijfsdata? Dan is het geen AVG-datalek." },
+            { q: "Gaat het om een inbreuk op de vertrouwelijkheid, integriteit of beschikbaarheid?", hint: "Voorbeelden: e-mail naar verkeerde ontvanger (vertrouwelijkheid), ransomware (beschikbaarheid + mogelijk vertrouwelijkheid), ongeautoriseerde wijziging (integriteit)." },
+            { q: "Noteer het exacte tijdstip waarop de organisatie redelijkerwijs op de hoogte raakte.", hint: "Dit is het startpunt van de 72-uurstermijn. Documenteer dit direct." }
+          ]
+        },
+        {
+          title: "Risicobeoordeling",
+          questions: [
+            { q: "Welke categorieën persoonsgegevens zijn betrokken?", hint: "Bijzondere categorieën (gezondheid, BSN, biometrie) leiden tot een hoger risico en snellere meldplicht." },
+            { q: "Hoeveel betrokkenen zijn (mogelijk) getroffen?", hint: "Grootschaligheid verhoogt het risico. Zijn het kwetsbare personen (minderjarigen, patiënten)?" },
+            { q: "Zijn de gegevens versleuteld of anderszins onleesbaar voor de onbevoegde ontvanger?", hint: "Sterke encryptie kan het risico reduceren tot 'laag' — dit is relevant voor de meldplicht." },
+            { q: "Wat is de kans op misbruik, identiteitsfraude of andere schade voor betrokkenen?", hint: "Laag risico: interne e-mail naar verkeerde collega met namen. Hoog risico: financiële gegevens extern gelekt." }
+          ]
+        },
+        {
+          title: "Meldplicht",
+          questions: [
+            { q: "Is het risico voor betrokkenen 'waarschijnlijk'? Zo ja: meld binnen 72 uur aan de AP.", hint: "Bij twijfel: meld. Een te vroege melding kan worden aangevuld; een te late melding levert een boete op." },
+            { q: "Is het risico 'hoog'? Zo ja: informeer ook de betrokkenen zelf direct.", hint: "Hoog risico = grote kans op ernstige schade. Betrokkenen moeten concreet geïnformeerd worden over wat er mis ging en wat ze zelf kunnen doen." },
+            { q: "Is het datalek veroorzaakt door een verwerker? Zo ja: heeft de verwerker u tijdig geïnformeerd?", hint: "De verwerker moet u 'onverwijld' informeren (art. 33 lid 2). Als verwerkingsverantwoordelijke blijft u verantwoordelijk voor de melding aan de AP." }
+          ]
+        },
+        {
+          title: "Documentatie & herstel",
+          questions: [
+            { q: "Is het datalek geregistreerd in het interne datalekregister (art. 33 lid 5)?", hint: "Verplicht bij elk datalek, ongeacht of melding aan de AP vereist is. Inclusief de afweging waarom wél of niet gemeld is." },
+            { q: "Zijn de nodige herstelmaatregelen getroffen om verdere schade te beperken?", hint: "Bijv. wachtwoorden resetten, toegang blokkeren, systemen isoleren, verkeerd verzonden e-mail laten verwijderen door ontvanger." },
+            { q: "Is geanalyseerd wat de oorzaak was en zijn maatregelen genomen om herhaling te voorkomen?", hint: "De AP kan vragen om bewijs van structurele opvolging. Vastlegging in het incidentregister is essentieel." }
+          ]
+        }
+      ],
+      verdict: "Elk beveiligingsincident waarbij persoonsgegevens betrokken zijn moet intern worden geregistreerd. Meld bij de AP als het risico 'waarschijnlijk' is. Informeer betrokkenen als het risico 'hoog' is. Documenteer altijd uw risico-afweging, ook als u besluit niet te melden."
+    },
+    {
+      id: "betrokkenenverzoek-check",
+      title: "Betrokkenenverzoek Check",
+      short: "AVG-rechten van personen afhandelen.",
+      badge: "Rechten betrokkenen",
+      intro: "Gebruik deze check bij elk verzoek van een persoon die zijn of haar AVG-rechten uitoefent. Doel: het verzoek correct identificeren, beoordelen en tijdig afhandelen.",
+      sections: [
+        {
+          title: "Ontvangst & identificatie",
+          questions: [
+            { q: "Noteer de ontvangstdatum — dit is de start van de één-maandtermijn (art. 12 lid 3).", hint: "De termijn loopt ongeacht of het verzoek via e-mail, brief, telefonisch of mondeling is ingediend." },
+            { q: "Om welk type verzoek gaat het?", hint: "Opties: inzage (art. 15), rectificatie (art. 16), verwijdering (art. 17), beperking (art. 18), overdraagbaarheid (art. 20), bezwaar (art. 21), of menselijke tussenkomst bij geautomatiseerde besluitvorming (art. 22)." },
+            { q: "Is de identiteit van de verzoeker voldoende zeker vastgesteld?", hint: "Vraag om verificatie als er twijfel is. Vraag niet meer dan nodig — een kopie paspoort is zelden proportioneel voor een eenvoudig verzoek." }
+          ]
+        },
+        {
+          title: "Beoordeling van het verzoek",
+          questions: [
+            { q: "Verwerkt uw organisatie inderdaad persoonsgegevens van deze persoon?", hint: "Doorzoek alle relevante systemen: CRM, HR-systeem, e-mailarchief, back-ups, logbestanden." },
+            { q: "Is er een wettelijke uitzondering van toepassing die (gedeeltelijke) weigering rechtvaardigt?", hint: "Bijv. bewaarplicht maakt verwijdering deels onmogelijk, belangen van derden beperken inzage, of het verzoek is kennelijk ongegrond (maar dat is een hoge lat)." },
+            { q: "Zijn de gevraagde gegevens ook bij derden (verwerkers, ontvangers) aanwezig die geïnformeerd moeten worden?", hint: "Bij rectificatie of verwijdering bent u verplicht derden te informeren aan wie u de gegevens heeft doorgegeven (art. 19)." }
+          ]
+        },
+        {
+          title: "Afhandeling",
+          questions: [
+            { q: "Is de gevraagde actie (inzage, correctie, wissing etc.) daadwerkelijk en volledig uitgevoerd?", hint: "Controleer alle systemen. Vergeet back-ups en archieven niet. Deelafhandeling is een veelgemaakte fout." },
+            { q: "Is de betrokkene binnen één maand schriftelijk geïnformeerd over de uitkomst?", hint: "Verlenging met twee maanden is mogelijk bij complexe verzoeken, maar u moet dit vóór het einde van de eerste maand communiceren." },
+            { q: "Heeft u de betrokkene geïnformeerd over zijn recht om een klacht in te dienen bij de AP?", hint: "Verplicht op grond van art. 12 lid 4 bij (gedeeltelijke) weigering van een verzoek." }
+          ]
+        },
+        {
+          title: "Documentatie",
+          questions: [
+            { q: "Is het verzoek, de identiteitsverificatie, de beoordeling en de reactie gedocumenteerd?", hint: "De verantwoordingsplicht (art. 5 lid 2) vereist dat u kunt aantonen hoe verzoeken worden afgehandeld." },
+            { q: "Zijn eventuele weigeringsgronden juridisch onderbouwd en vastgelegd?", hint: "Als de AP om uitleg vraagt, moet u de afweging inzichtelijk kunnen maken." }
+          ]
+        }
+      ],
+      verdict: "Reageer altijd binnen één maand. Voer de gevraagde actie volledig uit in alle systemen. Documenteer elk verzoek en elke beslissing. Bij twijfel over de weigeringsgrond: honoreer het verzoek liever deels dan dat u te weinig doet."
+    }
+  ]
+};
+
+function buildSearchIndex() {
+  const index = [];
+  const themeLabels = {
+    rechten: "Rechten van betrokkenen",
+    beginselen: "Beginselen van verwerking",
+    grondslagen: "Rechtmatige grondslagen",
+    beveiliging: "Beveiliging & datalekken",
+    organisatie: "Organisatorische verplichtingen",
+    doorgifte: "Internationale doorgifte",
+    classificatie: "Persoonsgegevens & classificatie",
+    workflows: "Workflows",
+    checks: "Praktische checks"
+  };
+  for (const [themeKey, theme] of Object.entries(DATA)) {
+    for (const item of theme.items) {
+      const searchText = [
+        item.title,
+        item.short || '',
+        item.intro || '',
+        item.badge || '',
+        (item.tags || []).join(' '),
+        (item.warnTags || []).join(' '),
+        (item.sections || []).map(s => s.title + ' ' + s.body).join(' '),
+        (item.praktijk || []).map(p => p.label + ' ' + p.text).join(' ')
+      ].join(' ').toLowerCase();
+      index.push({ themeKey, itemId: item.id, title: item.title, short: item.short, badge: item.badge, themeLabel: themeLabels[themeKey], searchText });
+    }
+  }
+  // Also index checks
+  for (const item of CHECKS_DATA.items) {
+    const searchText = [
+      item.title, item.short || '', item.intro || '', item.badge || '',
+      (item.sections || []).map(s => s.title + ' ' + (s.questions || []).map(q => q.q + ' ' + (q.hint||'')).join(' ')).join(' ')
+    ].join(' ').toLowerCase();
+    index.push({ themeKey: 'checks', itemId: item.id, title: item.title, short: item.short, badge: item.badge, themeLabel: themeLabels['checks'], searchText });
+  }
+  return index;
+}
+
+const SEARCH_INDEX = buildSearchIndex();
+
+function highlight(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+function getSnippet(searchText, query) {
+  const terms = query.trim().toLowerCase().split(/\s+/);
+  const firstTerm = terms[0];
+  const idx = searchText.toLowerCase().indexOf(firstTerm);
+  if (idx === -1) return '';
+  const start = Math.max(0, idx - 60);
+  const end = Math.min(searchText.length, idx + 120);
+  let snippet = searchText.slice(start, end).trim();
+  if (start > 0) snippet = '…' + snippet;
+  if (end < searchText.length) snippet = snippet + '…';
+  let result = snippet;
+  terms.forEach(term => {
+    const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(${esc})`, 'gi'), '<mark>$1</mark>');
+  });
+  return result;
+}
+
+function handleSearch(query) {
+  const resultsEl = document.getElementById('search-results');
+  const noResultsEl = document.getElementById('search-no-results');
+  const q = query.trim().toLowerCase();
+
+  if (!q) {
+    resultsEl.classList.remove('visible');
+    noResultsEl.classList.remove('visible');
+    resultsEl.innerHTML = '';
+    return;
+  }
+
+  const terms = q.split(/\s+/);
+  const matches = SEARCH_INDEX.filter(item =>
+    terms.every(term => item.searchText.includes(term))
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    resultsEl.classList.remove('visible');
+    noResultsEl.classList.add('visible');
+    return;
+  }
+
+  noResultsEl.classList.remove('visible');
+  resultsEl.innerHTML = matches.map(m => {
+    const snippet = getSnippet(m.searchText, query.trim());
+    const snippetHTML = snippet ? `<div class="search-result-snippet">${snippet}</div>` : '';
+    return `
+    <div class="search-result-item" onclick="goLevel(2, '${m.themeKey}', '${m.itemId}'); document.getElementById('search-input').value = ''; handleSearch('');">
+      <div class="search-result-title">${highlight(m.title, query.trim())}</div>
+      <div class="search-result-meta">${m.themeLabel}</div>
+      <div class="search-result-badge">${m.badge || ''}</div>
+      ${snippetHTML}
+    </div>`;
+  }).join('');
+  resultsEl.classList.add('visible');
+}
+
+let currentTheme = null;
+let currentItem = null;
+
+// --- DEEP LINK HELPERS ---
+function getHash() {
+  return window.location.hash.replace('#', '');
+}
+
+function setHash(hash) {
+  if (history.pushState) {
+    history.pushState(null, null, hash ? '#' + hash : window.location.pathname);
+  } else {
+    window.location.hash = hash;
+  }
+}
+
+function navigateToHash(hash) {
+  if (!hash) {
+    goLevel(0, null, null, true);
+    return;
+  }
+  const parts = hash.split('/');
+  const allThemes = { ...DATA, checks: CHECKS_DATA };
+  if (parts.length === 1 && allThemes[parts[0]]) {
+    goLevel(1, parts[0], null, true);
+  } else if (parts.length === 2 && allThemes[parts[0]]) {
+    const item = allThemes[parts[0]].items.find(i => i.id === parts[1]);
+    if (item) {
+      currentTheme = parts[0];
+      goLevel(2, parts[0], parts[1], true);
+    } else {
+      goLevel(1, parts[0], null, true);
+    }
+  } else {
+    goLevel(0, null, null, true);
+  }
+}
+
+window.addEventListener('popstate', function() {
+  navigateToHash(getHash());
+});
+// --- END DEEP LINK HELPERS ---
+
+function updateBreadcrumb() {
+  const bc = document.getElementById('breadcrumb');
+  const allThemes = { ...DATA, checks: CHECKS_DATA };
+  let html = `<span class="crumb" onclick="goLevel(0)">Overzicht</span>`;
+  if (currentTheme) {
+    const label = allThemes[currentTheme].title;
+    if (currentItem) {
+      html += `<span class="sep">›</span><span class="crumb" onclick="goLevel(1, '${currentTheme}')">${label}</span>`;
+      const item = allThemes[currentTheme].items.find(i => i.id === currentItem);
+      html += `<span class="sep">›</span><span class="crumb current">${item.title}</span>`;
+    } else {
+      html += `<span class="sep">›</span><span class="crumb current">${label}</span>`;
+    }
+  } else {
+    html = `<span class="crumb current">Overzicht</span>`;
+  }
+  bc.innerHTML = html;
+}
+
+function updateDots(level) {
+  for (let i = 0; i < 3; i++) {
+    document.getElementById(`d${i}`).classList.toggle('active', i <= level);
+  }
+  const labels = ["Niveau 1 van 3", "Niveau 2 van 3", "Niveau 3 van 3"];
+  document.getElementById('level-label').textContent = labels[level];
+}
+
+function goLevel(level, theme, itemId, skipHistory) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  if (level === 0) {
+    currentTheme = null; currentItem = null;
+    document.getElementById('view0').classList.add('active');
+    if (!skipHistory) setHash('');
+  } else if (level === 1) {
+    currentTheme = theme; currentItem = null;
+    renderLevel1(theme);
+    document.getElementById('view1').classList.add('active');
+    if (!skipHistory) setHash(theme);
+  } else if (level === 2) {
+    if (!skipHistory) currentTheme = theme;
+    currentItem = itemId;
+    renderLevel2(theme, itemId);
+    document.getElementById('view2').classList.add('active');
+    if (!skipHistory) setHash(theme + '/' + itemId);
+  }
+  updateBreadcrumb();
+  updateDots(level);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// On load: navigate to hash if present
+(function() {
+  const hash = getHash();
+  if (hash) {
+    navigateToHash(hash);
+  }
+})();
+
+function renderLevel1(theme) {
+  const isChecks = theme === 'checks';
+  const isWorkflow = theme === 'workflows';
+  const d = isChecks ? CHECKS_DATA : DATA[theme];
+  document.getElementById('l1-header').innerHTML = `
+    <h2>${d.title}</h2>
+    <p>${d.intro}</p>
+  `;
+  document.getElementById('l1-principles').innerHTML = d.items.map(item => `
+    <div class="principle${isWorkflow ? ' workflow-principle' : ''}${isChecks ? ' checks-principle' : ''}" onclick="goLevel(2, '${theme}', '${item.id}')">
+      <h4>${item.title}</h4>
+      <p>${item.short}</p>
+      <div class="zoom-hint">→ verdiepen</div>
+    </div>
+  `).join('');
+}
+
+function renderLevel2(theme, itemId) {
+  const isChecks = theme === 'checks';
+  if (isChecks) {
+    renderChecksLevel2(itemId);
+    return;
+  }
+  const item = DATA[theme].items.find(i => i.id === itemId);
+  const isWorkflow = theme === 'workflows';
+  const back = document.getElementById('l2-back');
+  back.onclick = () => goLevel(1, theme);
+  const warnHTML = item.warnTags ? item.warnTags.map(t => `<span class="tag warn">${t}</span>`).join('') : '';
+  const tagHTML = item.tags ? item.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
+  const praktijkHTML = item.praktijk ? `
+    <div class="praktijk-block">
+      <div class="praktijk-header">Praktijkvoorbeelden</div>
+      <div class="praktijk-examples">
+        ${item.praktijk.map(p => `
+          <div class="praktijk-item">
+            <div class="praktijk-icon">${p.icon}</div>
+            <div class="praktijk-text"><strong>${p.label}</strong>${p.text}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+  document.getElementById('l2-content').innerHTML = `
+    <div class="detail-badge${isWorkflow ? ' workflow-badge' : ''}">${item.badge}</div>
+    <h2>${item.title}</h2>
+    <p class="intro">${item.intro}</p>
+    <div class="detail-sections">
+      ${item.sections.map((s, idx) => {
+        const stepClass = isWorkflow ? ' workflow-step' : '';
+        const stepNum = isWorkflow ? `<span class="step-number">${idx + 1}</span>` : '';
+        return `
+        <div class="detail-section${stepClass}">
+          <h5>${stepNum}${s.title}</h5>
+          <p>${s.body}</p>
+        </div>`;
+      }).join('')}
+    </div>
+    ${praktijkHTML}
+    <div class="tag-list">
+      ${tagHTML}${warnHTML}
+    </div>
+    <div class="zoom-nav">
+      <button class="copy-link-btn" id="copy-link-btn" onclick="copyDeepLink()">🔗 Kopieer link naar dit artikel</button>
+    </div>
+  `;
+}
+
+function renderChecksLevel2(itemId) {
+  const item = CHECKS_DATA.items.find(i => i.id === itemId);
+  const back = document.getElementById('l2-back');
+  back.onclick = () => goLevel(1, 'checks');
+  let qCounter = 0;
+  const sectionsHTML = item.sections.map(s => `
+    <div class="detail-section" style="border-left: 3px solid var(--checks-color); padding: 0;">
+      <h5 style="color: var(--checks-color); padding: 1rem 1.5rem 0.75rem; border-bottom: 1px solid var(--border);">${s.title}</h5>
+      <div class="checks-questions">
+        ${s.questions.map(q => {
+          qCounter++;
+          return `
+          <div class="checks-question">
+            <span class="checks-q-num">V${qCounter}</span>
+            <div>
+              <div class="checks-q-text">${q.q}</div>
+              ${q.hint ? `<div class="checks-q-hint">💡 ${q.hint}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('l2-content').innerHTML = `
+    <div class="detail-badge checks-badge">${item.badge}</div>
+    <h2>${item.title}</h2>
+    <p class="intro" style="border-left-color: var(--checks-color);">${item.intro}</p>
+    <div class="detail-sections">
+      ${sectionsHTML}
+    </div>
+    <div class="checks-verdict">
+      <div class="checks-verdict-label">✓ Besluitcriterium</div>
+      <p>${item.verdict}</p>
+    </div>
+    <div class="zoom-nav">
+      <button class="copy-link-btn" id="copy-link-btn" onclick="copyDeepLink()">🔗 Kopieer link naar dit artikel</button>
+    </div>
+  `;
+}
+
+function copyDeepLink() {
+  const url = window.location.href.split('#')[0] + '#' + currentTheme + '/' + currentItem;
+  const btn = document.getElementById('copy-link-btn');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✓ Gekopieerd!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '🔗 Kopieer link naar dit artikel'; btn.classList.remove('copied'); }, 2000);
+    });
+  } else {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Gekopieerd!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '🔗 Kopieer link naar dit artikel'; btn.classList.remove('copied'); }, 2000);
+  }
+}
+</script>
+</body>
+</html>
